@@ -2,19 +2,25 @@
 #define APPLICATION_H
 
 #include "Window.h"
+#include "Renderer/Renderer.h"
 
 namespace RiverCore {
 
 class Application {
 public:
     Application();
-    virtual ~Application();
+    ~Application();
+
+    // Initializes engine resources
     void Init();
+    // Starts the core application loop
     void Run();
 
 private:
+    // Internal window class
     Window window;
-    SDL_Renderer* renderer = nullptr;
+    // Internal renderer class
+    Renderer renderer;
 };
 
 }

@@ -4,4 +4,6 @@
 #include "Core/Window.h"
 #include "Core/Application.h"
 
+#include "Renderer/Renderer.h"
+
 #endif
