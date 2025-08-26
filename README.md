@@ -7,14 +7,7 @@
     cd River
     ```
 
-2. Get submodules
-
-    ```sh
-    git submodule init
-    git submodule update
-    ```
-
-3. Run the appropriate setup script
+2. Run the appropriate setup script
 
     Windows:
 
