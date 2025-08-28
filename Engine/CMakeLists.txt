@@ -21,24 +21,20 @@ add_library(Engine STATIC
 # Set target properties
 target_compile_features(Engine PUBLIC cxx_std_17)
 
-# Find Vulkan
-find_package(Vulkan REQUIRED)
-
 # Include directories
 target_include_directories(Engine 
     PUBLIC 
         ${CMAKE_CURRENT_SOURCE_DIR}/Source
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/Core
-        ${Vulkan_INCLUDE_DIRS}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# Link with SDL3 and Vulkan
+# Link with SDL3 and SDL_image
 target_link_libraries(Engine 
     PUBLIC 
-        SDL3_Vendor
-        Vulkan::Vulkan
+        SDL3::SDL3
+        SDL3_image::SDL3_image
 )
 
 # Set compile options

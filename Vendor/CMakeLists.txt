@@ -12,9 +12,21 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/SDL/CMakeLists.txt")
     
     add_subdirectory(SDL)
     
-    # Create an interface library to wrap built SDL3
-    add_library(SDL3_Vendor INTERFACE)
-    target_link_libraries(SDL3_Vendor INTERFACE SDL3-static)
+    # Ensure SDL_image builds as static to match our SDL3 static build
+    set(BUILD_SHARED_LIBS OFF)
+    
+    # Disable heavy dependencies that require additional tools/libraries
+    set(SDLIMAGE_AVIF OFF CACHE BOOL "Enable AVIF image support" FORCE)
+    set(SDLIMAGE_JXL OFF CACHE BOOL "Enable JPEG XL image support" FORCE) 
+    set(SDLIMAGE_WEBP OFF CACHE BOOL "Enable WebP image support" FORCE)
+    set(SDLIMAGE_TIF OFF CACHE BOOL "Enable TIFF image support" FORCE)
+    
+    # Keep basic formats enabled
+    set(SDLIMAGE_BMP ON CACHE BOOL "Enable BMP image support" FORCE)
+    set(SDLIMAGE_PNG ON CACHE BOOL "Enable PNG image support" FORCE)
+    set(SDLIMAGE_JPG ON CACHE BOOL "Enable JPEG image support" FORCE)
+    
+    add_subdirectory(SDL_image)
 else()
     message(FATAL_ERROR "SDL subdirectory not found. Please add SDL3 source to Vendor/SDL.")
 endif()
