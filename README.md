@@ -12,11 +12,11 @@
     Windows:
 
     ```sh
-    .\SetupWindows.bat
+    .\Setup-Windows.bat
     ```
 
     Linux:
 
     ```sh
-    ./SetupLinux.sh
+    ./Setup-Linux.sh
     ```

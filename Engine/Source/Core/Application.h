@@ -3,6 +3,7 @@
 
 #include "Window.h"
 #include "Renderer/Renderer.h"
+#include "Input/Input.h"
 
 namespace RiverCore {
 
@@ -21,6 +22,8 @@ private:
     Window window;
     // Internal renderer class
     Renderer renderer;
+    // Internal input handler class
+    Input input;
 };
 
 }
