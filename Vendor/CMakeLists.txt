@@ -8,7 +8,7 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/SDL/CMakeLists.txt")
     # Disable SDL3 examples, tests, etc. to speed up build
     set(SDL_SHARED OFF CACHE BOOL "Build SDL3 as shared library" FORCE)
     set(SDL_STATIC ON CACHE BOOL "Build SDL3 as static library" FORCE)
-    set(SDL_TEST OFF CACHE BOOL "Build SDL3 tests" FORCE)
+    set(SDL_TEST_LIBRARY OFF CACHE BOOL "Build SDL3 test library" FORCE)
     
     add_subdirectory(SDL)
     
