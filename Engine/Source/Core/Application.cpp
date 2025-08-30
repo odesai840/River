@@ -6,6 +6,9 @@ namespace RiverCore {
 Application::Application() {
     // Initialize the internal window class object
     window = Window();
+
+    // Initialize the input handler object
+    input = Input();
 }
 
 Application::~Application() {
@@ -50,6 +53,9 @@ void Application::Run() {
                 done = true;
             }
         }
+
+        // Update input state
+        SDL_PumpEvents();
 
         renderer.Clear();
         renderer.BeginFrame();
