@@ -9,6 +9,7 @@ namespace RiverCore {
 class Input {
 public:
     Input();
+    // Returns if a key was pressed
     bool IsKeyPressed(SDL_Scancode scancode);
 };
 

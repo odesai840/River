@@ -1,3 +1,4 @@
 Build
-Game
+Game/Source/*
+!Game/Source/GameApp.cpp
 .vscode

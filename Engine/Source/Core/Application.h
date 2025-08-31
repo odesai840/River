@@ -2,9 +2,9 @@
 #define APPLICATION_H
 
 #include "Window.h"
+#include "GameInterface.h"
 #include "Renderer/Renderer.h"
 #include "Input/Input.h"
-#include "Entities/Entities.h"
 
 namespace RiverCore {
 
@@ -16,17 +16,15 @@ public:
     // Initializes engine resources
     void Init();
     // Starts the core application loop
-    void Run();
+    void Run(GameInterface* game);
 
 private:
     // Internal window class
     Window window;
     // Internal renderer class
     Renderer renderer;
-    // Internal input handler class
+    // Internal input system class
     Input input;
-    //Internal entities class
-    Entities entities;
 };
 
 }

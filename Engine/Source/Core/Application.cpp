@@ -1,4 +1,5 @@
 #include "Application.h"
+#include <chrono>
 #include <iostream>
 
 namespace RiverCore {
@@ -9,9 +10,6 @@ Application::Application() {
 
     // Initialize the input handler object
     input = Input();
-
-    //Intialize the entities object
-    entities = Entities();
 }
 
 Application::~Application() {
@@ -29,8 +27,8 @@ void Application::Init() {
         SDL_CreateWindow(
             window.GetTitle().c_str(), 
             window.GetWidth(), 
-            window.GetHeight(), 
-            SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED
+            window.GetHeight(),
+            SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED
         )
     );
     
@@ -42,13 +40,24 @@ void Application::Init() {
     renderer.Init(window.GetNativeWindow());
 }
 
-void Application::Run() {
+void Application::Run(GameInterface* game) {
     // Initialize engine systems
     Init();
 
+    game->SetRenderer(&renderer);
+    game->SetInput(&input);
+    
+    game->OnStart();
+
     // Core application loop
     bool done = false;
+    auto lastTime = std::chrono::high_resolution_clock::now();
     while(!done) {
+        // Calculate delta time
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+        lastTime = currentTime;
+        
         SDL_Event event;
 
         while (SDL_PollEvent(&event)) {
@@ -59,11 +68,14 @@ void Application::Run() {
 
         // Update input state
         SDL_PumpEvents();
-
-        renderer.Clear();
-        renderer.BeginFrame();
-        SDL_RenderPresent(renderer.GetRenderer());
+        
+        game->OnUpdate(deltaTime);
+        
+        renderer.BeginFrame(deltaTime);
+        renderer.EndFrame();
     }
+
+    game->OnDestroy();
 
     // Clean up engine systems
     SDL_DestroyWindow(window.GetNativeWindow());

@@ -12,11 +12,13 @@
     Windows:
 
     ```sh
+    cd Scripts
     .\Setup-Windows.bat
     ```
 
     Linux:
 
     ```sh
+    cd Scripts
     ./Setup-Linux.sh
     ```
