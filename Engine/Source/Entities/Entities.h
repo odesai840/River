@@ -12,6 +12,11 @@ namespace RiverCore
         Entities();
         void LoadSpriteSheet(char *fileName);
         void LoadPositionAndFrame(int currentFrame, int spriteWidth, int spriteHeight, int x_pos, int y_pos);
+        void Init();
+
+    private:
+        Renderer renderer;
+        Window window;
     };
     
 }

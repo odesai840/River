@@ -1,5 +1,5 @@
 #include "Entities.h"
-#include <SDL_image.h>
+#include <SDL3_image/SDL_image.h>
 
 namespace RiverCore
 {
@@ -9,20 +9,24 @@ namespace RiverCore
     {
         SDL_Texture *texture = nullptr;
     };
-
-    
-    
+    //Create an object for the singular entity
     Entity entity;
-    Renderer renderer;
-    Window window;
-    renderer.Init(window.GetNativeWindow());
-    SDL_Renderer * renderObject = renderer.GetRenderer();
-
+    
+    
+    
     Entities::Entities()
     {
         
     }
 
+    //Intializes the renderer
+    void Entities::Init(){
+        renderer.Init(window.GetNativeWindow());
+    }
+    //Creates the renderer object
+    SDL_Renderer * renderObject = renderer.GetRenderer();
+
+    //Loads the whole spritesheet into the entity
     void Entities::LoadSpriteSheet(char *fileName)
     {
         SDL_Surface *spriteSheet = IMG_Load(fileName);
@@ -30,6 +34,7 @@ namespace RiverCore
         SDL_DestroySurface(spriteSheet);
     }
 
+    //Loads the frame of the entity and the position to where to draw the entity, and draws the entity
     void Entities::LoadPositionAndFrame(int currentFrame, int spriteWidth, int spriteHeight, int x_pos, int y_pos){
         SDL_FRect srcRect = {
             (float)(currentFrame * spriteWidth),

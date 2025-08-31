@@ -9,6 +9,9 @@ Application::Application() {
 
     // Initialize the input handler object
     input = Input();
+
+    //Intialize the entities object
+    entities = Entities();
 }
 
 Application::~Application() {

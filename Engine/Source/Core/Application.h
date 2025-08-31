@@ -4,6 +4,7 @@
 #include "Window.h"
 #include "Renderer/Renderer.h"
 #include "Input/Input.h"
+#include "Entities/Entities.h"
 
 namespace RiverCore {
 
@@ -24,6 +25,8 @@ private:
     Renderer renderer;
     // Internal input handler class
     Input input;
+    //Internal entities class
+    Entities entities;
 };
 
 }
