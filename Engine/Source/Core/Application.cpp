@@ -75,8 +75,6 @@ void Application::Run(GameInterface* game) {
         renderer.EndFrame();
     }
 
-    game->OnDestroy();
-
     // Clean up engine systems
     SDL_DestroyWindow(window.GetNativeWindow());
     SDL_Quit();

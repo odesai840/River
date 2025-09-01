@@ -14,8 +14,6 @@ public:
     virtual void OnStart() {}
     // Runs for every frame
     virtual void OnUpdate(float deltaTime) {}
-    // Runs after the game has finished
-    virtual void OnDestroy() {}
 
     // Set the internal renderer reference (for use in the engine core only)
     void SetRenderer(Renderer* renderer) { this->rendererRef = renderer; }
