@@ -1,11 +1,8 @@
 #include "Renderer.h"
-
-#include <iostream>
-#include <__msvc_ostream.hpp>
-
 #include "Core/Window.h"
 #include <SDL3/SDL_log.h>
 #include <SDL3_image/SDL_image.h>
+#include <iostream>
 
 namespace RiverCore {
 
