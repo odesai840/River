@@ -29,13 +29,15 @@ protected:
         float rotation = 0.0f, float Xscale = 1.0f, float Yscale = 1.0f);
     // Update an entity's position given its ID
     void UpdateEntityPosition(uint32_t entityID, float newX, float newY);
+    // Flip an entity's sprite
+    void FlipSprite(uint32_t entityID, bool flipX, bool flipY);
     // Checks if a key is pressed
     bool IsKeyPressed(SDL_Scancode key);
 
 private:
-    // Internal renderer reference (for abstraction purposes)
+    // Internal renderer reference (internal use only)
     Renderer* rendererRef = nullptr;
-    // Internal input reference (for abstraction purposes)
+    // Internal input reference (internal use only)
     Input* inputRef = nullptr;
 };
 

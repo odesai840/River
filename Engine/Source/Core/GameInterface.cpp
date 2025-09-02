@@ -31,4 +31,10 @@ bool GameInterface::IsKeyPressed(SDL_Scancode key) {
     return false;
 }
 
+void GameInterface::FlipSprite(uint32_t entityID, bool flipX, bool flipY) {
+    if (rendererRef) {
+        rendererRef->FlipSprite(entityID, flipX, flipY);
+    }
+}
+
 }

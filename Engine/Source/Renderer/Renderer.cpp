@@ -190,4 +190,23 @@ void Renderer::UpdateEntityPosition(uint32_t entityID, float newX, float newY) {
     }
 }
 
+void Renderer::FlipSprite(uint32_t entityID, bool flipX, bool flipY) {
+    Entity* entity = GetEntityByID(entityID);
+    if(flipX) {
+        entity->Xscale *= -1;
+    }
+    if(flipY) {
+        entity->Yscale *= -1;
+    }
+}
+
+Entity* Renderer::GetEntityByID(uint32_t ID) {
+    for(auto& entity : entities) {
+        if(entity.ID == ID) {
+            return &entity;
+        }
+    }
+    return nullptr;
+}
+
 }
