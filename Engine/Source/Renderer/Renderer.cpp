@@ -112,8 +112,12 @@ uint32_t Renderer::AddEntity(const char* spritePath, float Xpos, float Ypos, flo
         return 0;
     }
 
+    // Store the index to map the entity to
+    size_t index = entities.size();
     // Add the entity to the render list
     entities.push_back(entity);
+    // Add the entity to the index map
+    idToIndex[entity.ID] = index;
     // Return the entity's ID
     return entity.ID;
 }
@@ -154,59 +158,73 @@ uint32_t Renderer::AddAnimatedEntity(const char* spritePath, int totalFrames, fl
         return 0;
     }
 
+    // Store the index to map the entity to
+    size_t index = entities.size();
     // Add the entity to the render list
     entities.push_back(entity);
+    // Add the entity to the index map
+    idToIndex[entity.ID] = index;
     // Return the entity's ID
     return entity.ID;
 }
 
-void Renderer::RemoveEntity(uint32_t ID) {
-    // Remove the entity that matches the given ID from the render list
-    for (auto it = entities.begin(); it != entities.end(); ++it) {
-        if (it->ID == ID) {
-            SDL_DestroyTexture(it->spriteSheet);
-            entities.erase(it);
-            return;
-        }
+void Renderer::RemoveEntity(uint32_t entityID) {
+    // Find the entity with the matching ID in the index map
+    auto it = idToIndex.find(entityID);
+    // Early return if ID is not found
+    if (it == idToIndex.end()) return;
+
+    size_t index = it->second;
+    SDL_DestroyTexture(entities[index].spriteSheet);
+
+    // Swap with the last element and pop
+    if (index != entities.size() - 1) {
+        entities[index] = entities.back();
+        // Update swapped entity's index
+        idToIndex[entities[index].ID] = index;
     }
+    entities.pop_back();
+
+    // Remove the entity from the index map
+    idToIndex.erase(it); 
 }
 
 void Renderer::ClearEntities() {
-    // Delete all entity sprites and clear the render list
+    // Delete all entity sprites and clear the render list and index map
     for (auto& entity : entities) {
         SDL_DestroyTexture(entity.spriteSheet);
     }
     entities.clear();
+    idToIndex.clear();
 }
 
 void Renderer::UpdateEntityPosition(uint32_t entityID, float newX, float newY) {
-    // Update the position of the entity with the given ID
-    for (auto& entity : entities) {
-        if (entity.ID == entityID) {
-            entity.Xpos = newX;
-            entity.Ypos = newY;
-            return;
-        }
+    // Get the entity using its ID
+    Entity* entity = GetEntityByID(entityID);
+    // Update the entity's position if found
+    if (entity) {
+        entity->Xpos = newX;
+        entity->Ypos = newY;
     }
 }
 
 void Renderer::FlipSprite(uint32_t entityID, bool flipX, bool flipY) {
+    // Get the entity using its ID
     Entity* entity = GetEntityByID(entityID);
-    if(flipX) {
+    // Flip its sprite by negating its scale
+    if(entity && flipX) {
         entity->Xscale *= -1;
     }
-    if(flipY) {
+    if(entity && flipY) {
         entity->Yscale *= -1;
     }
 }
 
-Entity* Renderer::GetEntityByID(uint32_t ID) {
-    for(auto& entity : entities) {
-        if(entity.ID == ID) {
-            return &entity;
-        }
-    }
-    return nullptr;
+Entity* Renderer::GetEntityByID(uint32_t entityID) {
+    // Find the entity with the matching ID in the index map
+    auto it = idToIndex.find(entityID);
+    // Return a reference to it if found
+    return (it != idToIndex.end()) ? &entities[it->second] : nullptr;
 }
 
 }

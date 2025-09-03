@@ -4,6 +4,7 @@
 #include "Entity.h"
 #include <SDL3/SDL.h>
 #include <vector>
+#include <unordered_map>
 
 namespace RiverCore {
 
@@ -28,9 +29,9 @@ public:
     // Adds an animated entity to the render list given parameters and returns its ID
     uint32_t AddAnimatedEntity(const char* spritePath, int totalFrames, float fps, float Xpos = 0.0f, float Ypos = 0.0f,
         float rotation = 0.0f, float Xscale = 1.0f, float Yscale = 1.0f);
-    // Removes an entity from the render list given an ID
-    void RemoveEntity(uint32_t ID);
-    // Removes all entities in the render list
+    // Removes an entity from the render list and index map given an ID
+    void RemoveEntity(uint32_t entityID);
+    // Removes all entities in the render list and index map
     void ClearEntities();
     // Returns the number of entities in the render list
     size_t GetEntityCount() const { return entities.size(); }
@@ -48,6 +49,8 @@ private:
     int windowHeight;
     // Internal list of entities to render
     std::vector<Entity> entities;
+    // Maps entity IDs to their index in the render list
+    std::unordered_map<uint32_t, size_t> idToIndex;
     // ID for the next entity to be created
     uint32_t nextEntityID = 1;
 

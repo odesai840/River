@@ -27,6 +27,8 @@ protected:
     // Add an animated entity to the scene
     uint32_t AddAnimatedEntity(const char* spritePath, int totalFrames, float fps, float Xpos = 0.0f, float Ypos = 0.0f,
         float rotation = 0.0f, float Xscale = 1.0f, float Yscale = 1.0f);
+    // Removes an entity from the screen
+    void RemoveEntity(uint32_t entityID);
     // Update an entity's position given its ID
     void UpdateEntityPosition(uint32_t entityID, float newX, float newY);
     // Flip an entity's sprite
