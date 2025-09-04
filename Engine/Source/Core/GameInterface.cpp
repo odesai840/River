@@ -18,6 +18,8 @@ uint32_t GameInterface::AddAnimatedEntity(const char* spritePath, int totalFrame
     return 0;
 }
 
+GameInterface game;
+
 void GameInterface::RemoveEntity(uint32_t entityID) {
     if(rendererRef) {
         rendererRef->RemoveEntity(entityID);
@@ -44,15 +46,16 @@ void GameInterface::FlipSprite(uint32_t entityID, bool flipX, bool flipY) {
 }
 
 void setPhysics(float gravity) {
-    if (physicsRef){
-        physicsRef->setPhysics(gravity);
+    if (game.getPhysicsRef()){
+        game.getPhysicsRef()->setPhysics(gravity);
     }
 }
 
 float getPhysics(){
-    if (physicsRef){
-        physicsRef->getPhysics();
+    if (game.getPhysicsRef()){
+        game.getPhysicsRef()->getPhysics();
     }
+    return 0.0f;
 }
 
 }

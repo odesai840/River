@@ -8,8 +8,8 @@ namespace RiverCore{
 
 
         public:
-            Physics();
-            ~Physics();
+            Physics(){};
+            ~Physics(){};
             //Set gravity
             void setPhysics(const float gravity) {gravityAmount = gravity;}
             //Get gravity
@@ -17,7 +17,7 @@ namespace RiverCore{
 
         private:
             //Gravity float amount
-            static float gravityAmount;
+            float gravityAmount;
     };
 }
 

@@ -22,7 +22,8 @@ public:
     void SetInput(Input* input) { this->inputRef = input; }
     // Set the internal physics system reference (for use in the engine core only)
     void setPhysicsRef(Physics* physics) {this->physicsRef = physics;}
-
+    Physics * getPhysicsRef() const {return physicsRef;}
+    
 protected:
     // Add an entity to the scene
     uint32_t AddEntity(const char* spritePath, float Xpos = 0.0f, float Ypos = 0.0f, float rotation = 0.0f,
@@ -43,7 +44,7 @@ protected:
     //Get gravity
     float getPhysics();
 
-
+    
 private:
     // Internal renderer reference (internal use only)
     Renderer* rendererRef = nullptr;
