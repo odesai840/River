@@ -79,7 +79,7 @@ void Renderer::EndFrame() {
     SDL_RenderPresent(rendererRef);
 }
 
-uint32_t Renderer::AddEntity(const char* spritePath, float Xpos, float Ypos, float rotation, float Xscale, float Yscale) {
+uint32_t Renderer::AddEntity(const char* spritePath, float Xpos, float Ypos, float rotation, float Xscale, float Yscale, bool physEnabled) {
     // Load an image for the entity sprite
     SDL_Surface *spriteSheet = IMG_Load(spritePath);
 
@@ -101,6 +101,7 @@ uint32_t Renderer::AddEntity(const char* spritePath, float Xpos, float Ypos, flo
     entity.rotation = rotation;
     entity.Xscale = Xscale;
     entity.Yscale = Yscale;
+    entity.physApplied = physEnabled;
 
     // Free the image surface after creating the texture
     SDL_DestroySurface(spriteSheet);
@@ -123,7 +124,7 @@ uint32_t Renderer::AddEntity(const char* spritePath, float Xpos, float Ypos, flo
 }
 
 uint32_t Renderer::AddAnimatedEntity(const char* spritePath, int totalFrames, float fps, float Xpos, float Ypos,
-    float rotation, float Xscale, float Yscale)
+    float rotation, float Xscale, float Yscale, bool physEnabled)
 {
     // Load an image for the entity sprite
     SDL_Surface *spriteSheet = IMG_Load(spritePath);
@@ -147,6 +148,7 @@ uint32_t Renderer::AddAnimatedEntity(const char* spritePath, int totalFrames, fl
     entity.Xscale = Xscale;
     entity.Yscale = Yscale;
     entity.totalFrames = totalFrames;
+    entity.physApplied = physEnabled;
     entity.fps = fps;
 
     // Free the image surface after creating the texture

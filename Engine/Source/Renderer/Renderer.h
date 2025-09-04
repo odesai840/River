@@ -25,10 +25,10 @@ public:
 
     // Adds an entity to the render list given parameters and returns its ID
     uint32_t AddEntity(const char* spritePath, float Xpos = 0.0f, float Ypos = 0.0f, float rotation = 0.0f,
-        float Xscale = 1.0f, float Yscale = 1.0f);
+        float Xscale = 1.0f, float Yscale = 1.0f, bool physEnabled = false);
     // Adds an animated entity to the render list given parameters and returns its ID
     uint32_t AddAnimatedEntity(const char* spritePath, int totalFrames, float fps, float Xpos = 0.0f, float Ypos = 0.0f,
-        float rotation = 0.0f, float Xscale = 1.0f, float Yscale = 1.0f);
+        float rotation = 0.0f, float Xscale = 1.0f, float Yscale = 1.0f, bool physEnabled = false);
     // Removes an entity from the render list and index map given an ID
     void RemoveEntity(uint32_t entityID);
     // Removes all entities in the render list and index map

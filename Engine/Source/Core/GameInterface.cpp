@@ -2,18 +2,18 @@
 
 namespace RiverCore {
 
-uint32_t GameInterface::AddEntity(const char* spritePath, float Xpos, float Ypos, float rotation, float Xscale, float Yscale) {
+uint32_t GameInterface::AddEntity(const char* spritePath, float Xpos, float Ypos, float rotation, float Xscale, float Yscale, bool physEnabled) {
     if(rendererRef) {
-        return rendererRef->AddEntity(spritePath, Xpos, Ypos, rotation, Xscale, Yscale);
+        return rendererRef->AddEntity(spritePath, Xpos, Ypos, rotation, Xscale, Yscale, physEnabled);
     }
     return 0;
 }
 
 uint32_t GameInterface::AddAnimatedEntity(const char* spritePath, int totalFrames, float fps, float Xpos, float Ypos,
-    float rotation, float Xscale, float Yscale)
+    float rotation, float Xscale, float Yscale, bool physEnabled)
 {
     if(rendererRef) {
-        return rendererRef->AddAnimatedEntity(spritePath, totalFrames, fps, Xpos, Ypos, rotation, Xscale, Yscale);
+        return rendererRef->AddAnimatedEntity(spritePath, totalFrames, fps, Xpos, Ypos, rotation, Xscale, Yscale, physEnabled);
     }
     return 0;
 }
