@@ -43,4 +43,16 @@ void GameInterface::FlipSprite(uint32_t entityID, bool flipX, bool flipY) {
     }
 }
 
+void setPhysics(float gravity) {
+    if (physicsRef){
+        physicsRef->setPhysics(gravity);
+    }
+}
+
+float getPhysics(){
+    if (physicsRef){
+        physicsRef->getPhysics();
+    }
+}
+
 }

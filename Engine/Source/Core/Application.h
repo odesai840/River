@@ -5,6 +5,7 @@
 #include "GameInterface.h"
 #include "Renderer/Renderer.h"
 #include "Input/Input.h"
+#include "Physics/physics.h"
 
 namespace RiverCore {
 
@@ -25,6 +26,8 @@ private:
     Renderer renderer;
     // Internal input system class
     Input input;
+    // Internal physics class
+    Physics physics;
 };
 
 }

@@ -10,6 +10,9 @@ Application::Application() {
 
     // Initialize the input handler object
     input = Input();
+
+    // Initalize the physics class object
+    physics = Physics();
 }
 
 Application::~Application() {
@@ -44,6 +47,7 @@ void Application::Run(GameInterface* game) {
     // Initialize engine systems
     Init();
 
+    game->setPhysicsRef(&physics);
     game->SetRenderer(&renderer);
     game->SetInput(&input);
     

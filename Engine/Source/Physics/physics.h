@@ -5,7 +5,11 @@ namespace RiverCore{
 
     //Class to get gravity
     class Physics{
+
+
         public:
+            Physics();
+            ~Physics();
             //Set gravity
             void setPhysics(const float gravity) {gravityAmount = gravity;}
             //Get gravity

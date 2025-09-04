@@ -3,6 +3,7 @@
 
 #include "Renderer/Renderer.h"
 #include "Input/Input.h"
+#include "Physics/physics.h"
 
 namespace RiverCore {
 
@@ -19,6 +20,8 @@ public:
     void SetRenderer(Renderer* renderer) { this->rendererRef = renderer; }
     // Set the internal input system reference (for use in the engine core only)
     void SetInput(Input* input) { this->inputRef = input; }
+    // Set the internal physics system reference (for use in the engine core only)
+    void setPhysicsRef(Physics* physics) {this->physicsRef = physics;}
 
 protected:
     // Add an entity to the scene
@@ -35,12 +38,19 @@ protected:
     void FlipSprite(uint32_t entityID, bool flipX, bool flipY);
     // Checks if a key is pressed
     bool IsKeyPressed(SDL_Scancode key);
+    //Set gravity
+    void setPhysics(const float gravity);
+    //Get gravity
+    float getPhysics();
+
 
 private:
     // Internal renderer reference (internal use only)
     Renderer* rendererRef = nullptr;
     // Internal input reference (internal use only)
     Input* inputRef = nullptr;
+    // Internal physics reference (internal use only)
+    Physics* physicsRef = nullptr;
 };
 
 }
