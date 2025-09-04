@@ -22,7 +22,6 @@ public:
     void SetInput(Input* input) { this->inputRef = input; }
     // Set the internal physics system reference (for use in the engine core only)
     void setPhysicsRef(Physics* physics) {this->physicsRef = physics;}
-    Physics * getPhysicsRef() const {return physicsRef;}
     
 protected:
     // Add an entity to the scene
@@ -40,9 +39,9 @@ protected:
     // Checks if a key is pressed
     bool IsKeyPressed(SDL_Scancode key);
     //Set gravity
-    void setPhysics(const float gravity);
+    void setGravity(const float gravity);
     //Get gravity
-    float getPhysics();
+    float getGravity();
 
     
 private:

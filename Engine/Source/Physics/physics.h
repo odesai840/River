@@ -11,9 +11,9 @@ namespace RiverCore{
             Physics(){};
             ~Physics(){};
             //Set gravity
-            void setPhysics(const float gravity) {gravityAmount = gravity;}
+            void setGravity(const float gravity) {gravityAmount = gravity;}
             //Get gravity
-            float getPhysics() {return gravityAmount;}
+            float getGravity() {return gravityAmount;}
 
         private:
             //Gravity float amount
