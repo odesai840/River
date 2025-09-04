@@ -5,6 +5,13 @@
 
 namespace RiverCore {
 
+// Velocity struct for physics
+struct Velocity {
+    float x;
+    float y;
+    float mag;
+};
+
 // Data-only struct that defines variables for entities
 struct Entity {
     uint32_t ID = 0;              // Internal identifier (default 0 for invalid entity)
@@ -24,6 +31,10 @@ struct Entity {
     float rotation = 0.0f;        // Rotation in degrees (default: 0.0)
     float Xscale = 1.0f;          // X scale (default: 1.0)
     float Yscale = 1.0f;          // Y scale (default: 1.0)
+
+    //Velocity/Physics stuff
+    Velocity velocity;
+    bool physApplied;
 };
     
 }
