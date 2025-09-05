@@ -2,6 +2,8 @@
 #define ENTITIES_H
 
 #include "SDL3/SDL_render.h"
+#include <vector>
+#include <tuple>
 
 namespace RiverCore {
 
@@ -35,8 +37,13 @@ struct Entity {
     //Velocity/Physics stuff
     Velocity velocity;
     bool physApplied;
+
+    // Collisions are stored as a vector of tuples,
+    // where each tuple holds the other entity and the side being collided with
+    // (0 = top, 1 = right, 2 = bottom, 3 = left)
+    // Note that the same two entities can have multiple collisions (ex. top and left)
+    std::vector<std::tuple<Entity, int>> collisions = std::vector<std::tuple<Entity, int>>();
 };
-    
 }
 
 #endif

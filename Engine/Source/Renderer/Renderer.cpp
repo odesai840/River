@@ -203,10 +203,80 @@ void Renderer::ClearEntities() {
 void Renderer::UpdateEntityPosition(uint32_t entityID, float newX, float newY) {
     // Get the entity using its ID
     Entity* entity = GetEntityByID(entityID);
-    // Update the entity's position if found
+    // If found:
     if (entity) {
+        //Update the entity's position
         entity->Xpos = newX;
         entity->Ypos = newY;
+
+        // Clear the entity's collisions
+        entity->collisions.clear();
+
+        // Get the entity's rectangle
+        float x1, x2, y1, y2;
+        if (entity->Xscale >= 0) {
+            x1 = entity->Xpos;
+            x2 = entity->Xpos + entity->spriteWidth * entity->Xscale;
+        } else {
+            x2 = entity->Xpos;
+            x1 = entity->Xpos + entity->spriteWidth * entity->Xscale;
+        }
+        if (entity->Yscale >= 0) {
+            y1 = entity->Ypos;
+            y2 = entity->Ypos + entity->spriteHeight * entity->Yscale;
+        } else {
+            y2 = entity->Ypos;
+            y1 = entity->Ypos + entity->spriteHeight * entity->Yscale;
+        }
+        SDL_Rect entityRect = SDL_Rect{(int) x1, (int) y1, (int) (x2 - x1), (int) (y2 - y1)};
+
+        // For each entity in the render list:
+        for (Entity other : GetEntities()) {
+            // If the entity is not this entity:
+            if (other.ID != entityID) { 
+                // Get the other entity's rectangle
+                float ox1, ox2, oy1, oy2;
+                if (other.Xscale >= 0) {
+                    ox1 = other.Xpos;
+                    ox2 = other.Xpos + other.spriteWidth * other.Xscale;
+                } else {
+                    ox2 = other.Xpos;
+                    ox1 = other.Xpos + other.spriteWidth * other.Xscale;
+                }
+                if (entity->Yscale >= 0) {
+                    oy1 = other.Ypos;
+                    oy2 = other.Ypos + other.spriteHeight * other.Yscale;
+                } else {
+                    oy2 = other.Ypos;
+                    oy1 = other.Ypos + other.spriteHeight * other.Yscale;
+                }
+                SDL_Rect otherRect = SDL_Rect{(int) ox1, (int) oy1, (int) (ox2 - ox1), (int) (oy2 - oy1)};
+
+                // If the two rectangles intersect:
+                if (SDL_HasRectIntersection(&entityRect, &otherRect)) {
+                    // If the other entity interects this one from above:
+                    if (oy2 >= y1 && oy2 <= y2) {
+                        entity->collisions.push_back(std::tuple<Entity, int>(other, 0));
+                    }
+
+                    // If the other entity interects this one from the right:
+                    if (ox1 >= x1 && ox1 <= x2) {
+                        entity->collisions.push_back(std::tuple<Entity, int>(other, 1));
+                    }
+
+                    // If the other entity interects this one from below:
+                    if (oy1 >= y1 && oy1 <= y2) {
+                        entity->collisions.push_back(std::tuple<Entity, int>(other, 2));
+                    }
+
+                    // If the other entity interects this one from the left:
+                    if (ox2 >= x1 && ox2 <= x2) {
+                        entity->collisions.push_back(std::tuple<Entity, int>(other, 3));
+                    }
+
+                }
+            }
+        }
     }
 }
 

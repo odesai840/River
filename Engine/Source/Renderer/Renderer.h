@@ -33,6 +33,8 @@ public:
     void RemoveEntity(uint32_t entityID);
     // Removes all entities in the render list and index map
     void ClearEntities();
+    // Returns the list of entities being rendered
+    std::vector<Entity> GetEntities() const { return entities; }
     // Returns the number of entities in the render list
     size_t GetEntityCount() const { return entities.size(); }
     // Updates an entity's position given an ID
