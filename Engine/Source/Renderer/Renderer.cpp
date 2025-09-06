@@ -76,13 +76,13 @@ void Renderer::BeginFrame(float deltaTime) {
             if (scalingMode == ScalingMode::PixelBased) {
                 // In pixel-based mode, positions remain constant in screen coordinates
                 finalXPos = (entity.Xpos + (static_cast<float>(windowWidth) / 2.0f)) - (finalSpriteWidth / 2.0f);
-                finalYPos = (-entity.Ypos + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
+                finalYPos = (entity.Ypos + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
             } else {
                 // In proportional mode, positions scale with the window
                 float scaledXPos = entity.Xpos * globalScaleX;
                 float scaledYPos = entity.Ypos * globalScaleY;
                 finalXPos = (scaledXPos + (static_cast<float>(windowWidth) / 2.0f)) - (finalSpriteWidth / 2.0f);
-                finalYPos = (-scaledYPos + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
+                finalYPos = (scaledYPos + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
             }
 
             // Set the destination rectangle for sprite rendering
