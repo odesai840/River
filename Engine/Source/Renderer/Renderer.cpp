@@ -290,8 +290,9 @@ void Renderer::UpdateEntityCollisions(uint32_t entityID) {
 
                 // If the two rectangles intersect:
                 if (SDL_HasRectIntersection(&entityRect, &otherRect)) {
+
                     // If the other entity interects this one from above:
-                    if (oy2 >= y1 && oy2 <= y2) {
+                    if (oy1 >= y1 && oy1 <= y2) {
                         entity->collisions.push_back(std::pair<uint32_t, int>(other.ID, 0));
                     }
 
@@ -301,7 +302,7 @@ void Renderer::UpdateEntityCollisions(uint32_t entityID) {
                     }
                     
                     // If the other entity interects this one from below:
-                    if (oy1 >= y1 && oy1 <= y2) {
+                    if (oy2 >= y1 && oy2 <= y2) {
                         entity->collisions.push_back(std::pair<uint32_t, int>(other.ID, 2));
                     }
                     
