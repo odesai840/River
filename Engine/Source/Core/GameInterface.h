@@ -34,6 +34,8 @@ protected:
     void RemoveEntity(uint32_t entityID);
     // Update an entity's position given its ID
     void UpdateEntityPosition(uint32_t entityID, float newX, float newY);
+    // Returns an entity's collisions given its ID
+    std::vector<std::pair<uint32_t, int>> GetEntityCollisions(uint32_t entityID);
     // Flip an entity's sprite
     void FlipSprite(uint32_t entityID, bool flipX, bool flipY);
     // Checks if a key is pressed

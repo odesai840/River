@@ -209,6 +209,14 @@ void Renderer::UpdateEntityPosition(uint32_t entityID, float newX, float newY) {
         entity->Xpos = newX;
         entity->Ypos = newY;
 
+        // Update the entity's collisions
+        UpdateEntityCollisions(entityID);
+    }
+}
+
+void Renderer::UpdateEntityCollisions(uint32_t entityID) {
+    Entity* entity = GetEntityByID(entityID);
+    if (entity) {
         // Clear the entity's collisions
         entity->collisions.clear();
 
@@ -256,24 +264,23 @@ void Renderer::UpdateEntityPosition(uint32_t entityID, float newX, float newY) {
                 if (SDL_HasRectIntersection(&entityRect, &otherRect)) {
                     // If the other entity interects this one from above:
                     if (oy2 >= y1 && oy2 <= y2) {
-                        entity->collisions.push_back(std::tuple<Entity, int>(other, 0));
+                        entity->collisions.push_back(std::pair<uint32_t, int>(other.ID, 0));
                     }
 
                     // If the other entity interects this one from the right:
-                    if (ox1 >= x1 && ox1 <= x2) {
-                        entity->collisions.push_back(std::tuple<Entity, int>(other, 1));
+                    if (ox2 >= x1 && ox2 <= x2) {
+                        entity->collisions.push_back(std::pair<uint32_t, int>(other.ID, 1));
                     }
-
+                    
                     // If the other entity interects this one from below:
                     if (oy1 >= y1 && oy1 <= y2) {
-                        entity->collisions.push_back(std::tuple<Entity, int>(other, 2));
+                        entity->collisions.push_back(std::pair<uint32_t, int>(other.ID, 2));
                     }
-
+                    
                     // If the other entity interects this one from the left:
-                    if (ox2 >= x1 && ox2 <= x2) {
-                        entity->collisions.push_back(std::tuple<Entity, int>(other, 3));
+                    if (ox1 >= x1 && ox1 <= x2) {
+                        entity->collisions.push_back(std::pair<uint32_t, int>(other.ID, 3));
                     }
-
                 }
             }
         }

@@ -39,8 +39,12 @@ public:
     size_t GetEntityCount() const { return entities.size(); }
     // Updates an entity's position given an ID
     void UpdateEntityPosition(uint32_t entityID, float newX, float newY);
+    // Updates an entity's collisions given an ID
+    void UpdateEntityCollisions(uint32_t entityID);
     // Flips an entity's sprite given an ID
     void FlipSprite(uint32_t entityID, bool flipX, bool flipY);
+    // Returns a pointer to an entity given an ID
+    Entity* GetEntityByID(uint32_t ID);
 
 private:
     // Internal pointer to the underlying SDL renderer
@@ -55,9 +59,6 @@ private:
     std::unordered_map<uint32_t, size_t> idToIndex;
     // ID for the next entity to be created
     uint32_t nextEntityID = 1;
-
-    // Returns a pointer to an entity given an ID (internal use only)
-    Entity* GetEntityByID(uint32_t ID);
 };
 
 }

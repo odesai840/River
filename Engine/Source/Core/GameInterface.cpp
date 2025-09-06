@@ -30,6 +30,16 @@ void GameInterface::UpdateEntityPosition(uint32_t entityID, float newX, float ne
     }
 }
 
+std::vector<std::pair<uint32_t, int>> GameInterface::GetEntityCollisions(uint32_t entityID) {
+    if(rendererRef) {
+        Entity* entity = rendererRef->GetEntityByID(entityID);
+        if (entity) {
+            return entity->collisions;
+        }
+    }
+    return std::vector<std::pair<uint32_t, int>>();
+}
+
 bool GameInterface::IsKeyPressed(SDL_Scancode key) {
     if(inputRef) {
         return inputRef->IsKeyPressed(key);

@@ -38,11 +38,11 @@ struct Entity {
     Velocity velocity;
     bool physApplied;
 
-    // Collisions are stored as a vector of tuples,
-    // where each tuple holds the other entity and the side being collided with
+    // Collisions are stored as a vector of pairs,
+    // where each pair holds the other entity's ID and the side being collided with
     // (0 = top, 1 = right, 2 = bottom, 3 = left)
     // Note that the same two entities can have multiple collisions (ex. top and left)
-    std::vector<std::tuple<Entity, int>> collisions = std::vector<std::tuple<Entity, int>>();
+    std::vector<std::pair<uint32_t, int>> collisions = std::vector<std::pair<uint32_t, int>>();
 };
 }
 
