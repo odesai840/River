@@ -5,7 +5,7 @@
 #include "GameInterface.h"
 #include "Renderer/Renderer.h"
 #include "Input/Input.h"
-#include "Physics/physics.h"
+#include "Physics/Physics.h"
 
 namespace RiverCore {
 

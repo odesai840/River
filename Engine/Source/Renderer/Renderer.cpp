@@ -21,6 +21,11 @@ void Renderer::Init(SDL_Window* window) {
     if (rendererRef == nullptr) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Error creating SDL renderer: %s\n", SDL_GetError());
     }
+
+    // Get the initial window size for the base resolution
+    SDL_GetRenderOutputSize(rendererRef, &windowWidth, &windowHeight);
+    baseWindowWidth = static_cast<float>(windowWidth);
+    baseWindowHeight = static_cast<float>(windowHeight);
 }
 
 void Renderer::BeginFrame(float deltaTime) {
@@ -30,6 +35,10 @@ void Renderer::BeginFrame(float deltaTime) {
     // Clear the render target with a dark blue color
     SDL_SetRenderDrawColor(rendererRef, 0x00, 0x00, 0x1F, 0xFF);
     SDL_RenderClear(rendererRef);
+
+    // Calculate scaling factors based on the current scaling mode
+    float globalScaleX, globalScaleY;
+    CalculateScalingFactors(globalScaleX, globalScaleY);
 
     // Render all entities
     for (auto& entity : entities) {
@@ -58,11 +67,30 @@ void Renderer::BeginFrame(float deltaTime) {
                 entity.spriteHeight
             };
 
+            // Apply scaling mode calculations
+            float finalSpriteWidth = spriteWidth * entity.Xscale * globalScaleX;
+            float finalSpriteHeight = entity.spriteHeight * entity.Yscale * globalScaleY;
+
+            // Calculate sprite position with scaling mode consideration
+            float finalXPos, finalYPos;
+            if (scalingMode == ScalingMode::PixelBased) {
+                // In pixel-based mode, positions remain constant in screen coordinates
+                finalXPos = (entity.Xpos + (static_cast<float>(windowWidth) / 2.0f)) - (finalSpriteWidth / 2.0f);
+                finalYPos = (-entity.Ypos + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
+            } else {
+                // In proportional mode, positions scale with the window
+                float scaledXPos = entity.Xpos * globalScaleX;
+                float scaledYPos = entity.Ypos * globalScaleY;
+                finalXPos = (scaledXPos + (static_cast<float>(windowWidth) / 2.0f)) - (finalSpriteWidth / 2.0f);
+                finalYPos = (-scaledYPos + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
+            }
+
+            // Set the destination rectangle for sprite rendering
             SDL_FRect dstRect = {
-                (entity.Xpos + (static_cast<float>(windowWidth) / 2.0f)) - (spriteWidth * entity.Xscale / 2.0f),
-                (-entity.Ypos + (static_cast<float>(windowHeight) / 2.0f)) - (entity.spriteHeight * entity.Yscale / 2.0f),
-                spriteWidth * entity.Xscale,
-                entity.spriteHeight * entity.Yscale
+                finalXPos,
+                finalYPos,
+                finalSpriteWidth,
+                finalSpriteHeight
             };
             
             bool success = SDL_RenderTextureRotated(rendererRef, entity.spriteSheet, &srcRect, &dstRect,
@@ -304,6 +332,27 @@ Entity* Renderer::GetEntityByID(uint32_t entityID) {
     auto it = idToIndex.find(entityID);
     // Return a reference to it if found
     return (it != idToIndex.end()) ? &entities[it->second] : nullptr;
+}
+
+void Renderer::ToggleScalingMode() {
+    ScalingMode newMode = (scalingMode == ScalingMode::PixelBased) ?
+                           ScalingMode::Proportional : ScalingMode::PixelBased;
+    scalingMode = newMode;
+}
+
+void Renderer::CalculateScalingFactors(float& scaleX, float& scaleY) const {
+    switch (scalingMode) {
+        case ScalingMode::PixelBased:
+            // Constant size - no scaling based on window size
+            scaleX = 1.0f;
+            scaleY = 1.0f;
+            break;
+        case ScalingMode::Proportional:
+            // Proportional scaling based on window size change
+            scaleX = static_cast<float>(windowWidth) / baseWindowWidth;
+            scaleY = static_cast<float>(windowHeight) / baseWindowHeight;
+            break;
+    }
 }
 
 }

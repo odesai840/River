@@ -66,4 +66,10 @@ float GameInterface::getGravity(){
     return 0.0f;
 }
 
+void GameInterface::ToggleScalingMode() {
+    if (rendererRef) {
+        rendererRef->ToggleScalingMode();
+    }
+}
+
 }

@@ -3,7 +3,7 @@
 
 #include "Renderer/Renderer.h"
 #include "Input/Input.h"
-#include "Physics/physics.h"
+#include "Physics/Physics.h"
 
 namespace RiverCore {
 
@@ -44,7 +44,7 @@ protected:
     void setGravity(const float gravity);
     //Get gravity
     float getGravity();
-
+    void ToggleScalingMode();
     
 private:
     // Internal renderer reference (internal use only)

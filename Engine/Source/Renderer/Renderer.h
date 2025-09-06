@@ -8,6 +8,12 @@
 
 namespace RiverCore {
 
+// Enum for different scaling modes
+enum class ScalingMode {
+    PixelBased,    // Constant size (pixel-based)
+    Proportional   // Proportional scaling (percentage-based)
+};
+
 class Renderer {
 public:
     Renderer();
@@ -45,6 +51,8 @@ public:
     void FlipSprite(uint32_t entityID, bool flipX, bool flipY);
     // Returns a pointer to an entity given an ID
     Entity* GetEntityByID(uint32_t ID);
+    
+    void ToggleScalingMode();
 
 private:
     // Internal pointer to the underlying SDL renderer
@@ -59,6 +67,11 @@ private:
     std::unordered_map<uint32_t, size_t> idToIndex;
     // ID for the next entity to be created
     uint32_t nextEntityID = 1;
+
+    ScalingMode scalingMode = ScalingMode::Proportional;
+    float baseWindowWidth = 1920.0f;
+    float baseWindowHeight = 1080.0f;
+    void CalculateScalingFactors(float& scaleX, float& scaleY) const;
 };
 
 }
