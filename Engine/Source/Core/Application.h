@@ -28,6 +28,10 @@ private:
     Input input;
     // Internal physics class
     Physics physics;
+
+    static constexpr float FIXED_TIMESTEP = 1.0f / 60.0f;
+    static constexpr float MAX_FRAME_TIME = 0.25f;
+    float physicsAccumulator = 0.0f;
 };
 
 }

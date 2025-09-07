@@ -68,19 +68,19 @@ void Renderer::BeginFrame(float deltaTime) {
             };
 
             // Apply scaling mode calculations
-            float finalSpriteWidth = spriteWidth * entity.Xscale * globalScaleX;
-            float finalSpriteHeight = entity.spriteHeight * entity.Yscale * globalScaleY;
+            float finalSpriteWidth = spriteWidth * entity.scale.x * globalScaleX;
+            float finalSpriteHeight = entity.spriteHeight * entity.scale.y * globalScaleY;
 
             // Calculate sprite position with scaling mode consideration
             float finalXPos, finalYPos;
             if (scalingMode == ScalingMode::PixelBased) {
                 // In pixel-based mode, positions remain constant in screen coordinates
-                finalXPos = (entity.Xpos + (static_cast<float>(windowWidth) / 2.0f)) - (finalSpriteWidth / 2.0f);
-                finalYPos = (-entity.Ypos + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
+                finalXPos = (entity.position.x + (static_cast<float>(windowWidth) / 2.0f)) - (finalSpriteWidth / 2.0f);
+                finalYPos = (-entity.position.y + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
             } else {
                 // In proportional mode, positions scale with the window
-                float scaledXPos = entity.Xpos * globalScaleX;
-                float scaledYPos = entity.Ypos * globalScaleY;
+                float scaledXPos = entity.position.x * globalScaleX;
+                float scaledYPos = entity.position.y * globalScaleY;
                 finalXPos = (scaledXPos + (static_cast<float>(windowWidth) / 2.0f)) - (finalSpriteWidth / 2.0f);
                 finalYPos = (-scaledYPos + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
             }
@@ -98,6 +98,43 @@ void Renderer::BeginFrame(float deltaTime) {
 
             if (!success) {
                 SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Error rendering entity: %s\n", SDL_GetError());
+            }
+
+            if (debugCollisions) {
+                // Calculate collision box dimensions
+                float frameWidth = entity.totalFrames > 1 ?
+                    (entity.spriteWidth / static_cast<float>(entity.totalFrames)) : entity.spriteWidth;
+                float collisionWidth = frameWidth * abs(entity.scale.x);
+                float collisionHeight = entity.spriteHeight * abs(entity.scale.y);
+
+                // Calculate world space collision bounds
+                float worldX1 = entity.position.x - (collisionWidth / 2.0f);
+                float worldY1 = entity.position.y - (collisionHeight / 2.0f);
+
+                // Convert world space to screen space
+                float globalScaleX, globalScaleY;
+                CalculateScalingFactors(globalScaleX, globalScaleY);
+
+                float screenX, screenY;
+                if (scalingMode == ScalingMode::PixelBased) {
+                    screenX = (worldX1 + (static_cast<float>(windowWidth) / 2.0f));
+                    screenY = (-worldY1 + (static_cast<float>(windowHeight) / 2.0f)) - collisionHeight;
+                } else {
+                    float scaledWorldX = worldX1 * globalScaleX;
+                    float scaledWorldY = worldY1 * globalScaleY;
+                    screenX = (scaledWorldX + (static_cast<float>(windowWidth) / 2.0f));
+                    screenY = (-scaledWorldY + (static_cast<float>(windowHeight) / 2.0f)) - (collisionHeight * globalScaleY);
+                }
+
+                // Draw debug collision box with correct dimensions
+                SDL_SetRenderDrawColor(rendererRef, 255, 0, 0, 128);
+                SDL_FRect debugRect = {
+                    screenX,
+                    screenY,
+                    collisionWidth * (scalingMode == ScalingMode::Proportional ? globalScaleX : 1.0f),
+                    collisionHeight * (scalingMode == ScalingMode::Proportional ? globalScaleY : 1.0f)
+                };
+                SDL_RenderRect(rendererRef, &debugRect);
             }
         }
     }
@@ -124,11 +161,11 @@ uint32_t Renderer::AddEntity(const char* spritePath, float Xpos, float Ypos, flo
     entity.spriteSheet = SDL_CreateTextureFromSurface(rendererRef, spriteSheet);
     entity.spriteWidth = static_cast<float>(spriteSheet->w);
     entity.spriteHeight = static_cast<float>(spriteSheet->h);
-    entity.Xpos = Xpos;
-    entity.Ypos = Ypos;
+    entity.position.x = Xpos;
+    entity.position.y = Ypos;
     entity.rotation = rotation;
-    entity.Xscale = Xscale;
-    entity.Yscale = Yscale;
+    entity.scale.x = Xscale;
+    entity.scale.y = Yscale;
     entity.physApplied = physEnabled;
 
     // Free the image surface after creating the texture
@@ -170,11 +207,11 @@ uint32_t Renderer::AddAnimatedEntity(const char* spritePath, int totalFrames, fl
     entity.spriteSheet = SDL_CreateTextureFromSurface(rendererRef, spriteSheet);
     entity.spriteWidth = static_cast<float>(spriteSheet->w);
     entity.spriteHeight = static_cast<float>(spriteSheet->h);
-    entity.Xpos = Xpos;
-    entity.Ypos = Ypos;
+    entity.position.x = Xpos;
+    entity.position.y = Ypos;
     entity.rotation = rotation;
-    entity.Xscale = Xscale;
-    entity.Yscale = Yscale;
+    entity.scale.x = Xscale;
+    entity.scale.y = Yscale;
     entity.totalFrames = totalFrames;
     entity.physApplied = physEnabled;
     entity.fps = fps;
@@ -234,85 +271,8 @@ void Renderer::UpdateEntityPosition(uint32_t entityID, float newX, float newY) {
     // If found:
     if (entity) {
         //Update the entity's position
-        entity->Xpos = newX;
-        entity->Ypos = newY;
-
-        // Update the entity's collisions
-        UpdateEntityCollisions(entityID);
-    }
-}
-
-void Renderer::UpdateEntityCollisions(uint32_t entityID) {
-    Entity* entity = GetEntityByID(entityID);
-    if (entity) {
-        // Clear the entity's collisions
-        entity->collisions.clear();
-
-        // Get the entity's rectangle
-        float x1, x2, y1, y2;
-        if (entity->Xscale >= 0) {
-            x1 = entity->Xpos;
-            x2 = entity->Xpos + entity->spriteWidth * entity->Xscale;
-        } else {
-            x2 = entity->Xpos;
-            x1 = entity->Xpos + entity->spriteWidth * entity->Xscale;
-        }
-        if (entity->Yscale >= 0) {
-            y1 = entity->Ypos;
-            y2 = entity->Ypos + entity->spriteHeight * entity->Yscale;
-        } else {
-            y2 = entity->Ypos;
-            y1 = entity->Ypos + entity->spriteHeight * entity->Yscale;
-        }
-        SDL_Rect entityRect = SDL_Rect{(int) x1, (int) y1, (int) (x2 - x1), (int) (y2 - y1)};
-
-        // For each entity in the render list:
-        for (Entity other : GetEntities()) {
-            // If the entity is not this entity:
-            if (other.ID != entityID) { 
-                // Get the other entity's rectangle
-                float ox1, ox2, oy1, oy2;
-                if (other.Xscale >= 0) {
-                    ox1 = other.Xpos;
-                    ox2 = other.Xpos + other.spriteWidth * other.Xscale;
-                } else {
-                    ox2 = other.Xpos;
-                    ox1 = other.Xpos + other.spriteWidth * other.Xscale;
-                }
-                if (entity->Yscale >= 0) {
-                    oy1 = other.Ypos;
-                    oy2 = other.Ypos + other.spriteHeight * other.Yscale;
-                } else {
-                    oy2 = other.Ypos;
-                    oy1 = other.Ypos + other.spriteHeight * other.Yscale;
-                }
-                SDL_Rect otherRect = SDL_Rect{(int) ox1, (int) oy1, (int) (ox2 - ox1), (int) (oy2 - oy1)};
-
-                // If the two rectangles intersect:
-                if (SDL_HasRectIntersection(&entityRect, &otherRect)) {
-
-                    // If the other entity interects this one from above:
-                    if (oy1 >= y1 && oy1 <= y2) {
-                        entity->collisions.push_back(std::pair<uint32_t, int>(other.ID, 0));
-                    }
-
-                    // If the other entity interects this one from the right:
-                    if (ox2 >= x1 && ox2 <= x2) {
-                        entity->collisions.push_back(std::pair<uint32_t, int>(other.ID, 1));
-                    }
-                    
-                    // If the other entity interects this one from below:
-                    if (oy2 >= y1 && oy2 <= y2) {
-                        entity->collisions.push_back(std::pair<uint32_t, int>(other.ID, 2));
-                    }
-                    
-                    // If the other entity interects this one from the left:
-                    if (ox1 >= x1 && ox1 <= x2) {
-                        entity->collisions.push_back(std::pair<uint32_t, int>(other.ID, 3));
-                    }
-                }
-            }
-        }
+        entity->position.x = newX;
+        entity->position.y = newY;
     }
 }
 
@@ -321,10 +281,10 @@ void Renderer::FlipSprite(uint32_t entityID, bool flipX, bool flipY) {
     Entity* entity = GetEntityByID(entityID);
     // Flip its sprite by negating its scale
     if(entity && flipX) {
-        entity->Xscale *= -1;
+        entity->scale.x *= -1;
     }
     if(entity && flipY) {
-        entity->Yscale *= -1;
+        entity->scale.y *= -1;
     }
 }
 
@@ -355,5 +315,10 @@ void Renderer::CalculateScalingFactors(float& scaleX, float& scaleY) const {
             break;
     }
 }
+
+void Renderer::ToggleDebugCollisions() {
+    debugCollisions = !debugCollisions;
+}
+
 
 }

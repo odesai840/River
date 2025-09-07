@@ -41,10 +41,16 @@ protected:
     // Checks if a key is pressed
     bool IsKeyPressed(SDL_Scancode key);
     //Set gravity
-    void setGravity(const float gravity);
-    //Get gravity
-    float getGravity();
+    void SetGravity(const float gravity);
+    //Get Gravity
+    float GetGravity();
+    void ApplyForce(uint32_t entityID, float forceX, float forceY);
+    void ApplyImpulse(uint32_t entityID, float impulseX, float impulseY);
+    void SetVelocity(uint32_t entityID, float velX, float velY);
+    Vec2 GetVelocity(uint32_t entityID);
+    Vec2 GetPosition(uint32_t entityID);
     void ToggleScalingMode();
+    void ToggleDebugCollisions();
     
 private:
     // Internal renderer reference (internal use only)

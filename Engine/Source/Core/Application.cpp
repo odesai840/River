@@ -61,6 +61,10 @@ void Application::Run(GameInterface* game) {
         auto currentTime = std::chrono::high_resolution_clock::now();
         float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
         lastTime = currentTime;
+
+        // Accumulate time for physics
+        deltaTime = std::min(deltaTime, MAX_FRAME_TIME);
+        physicsAccumulator += deltaTime;
         
         SDL_Event event;
 
@@ -72,8 +76,15 @@ void Application::Run(GameInterface* game) {
 
         // Update input state
         SDL_PumpEvents();
-        
+
+        // Run game logic
         game->OnUpdate(deltaTime);
+
+        // Update physics
+        while (physicsAccumulator >= FIXED_TIMESTEP) {
+            physics.UpdatePhysics(renderer.GetEntities(), FIXED_TIMESTEP);
+            physicsAccumulator -= FIXED_TIMESTEP;
+        }
         
         renderer.BeginFrame(deltaTime);
         renderer.EndFrame();

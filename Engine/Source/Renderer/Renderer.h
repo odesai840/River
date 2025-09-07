@@ -39,20 +39,19 @@ public:
     void RemoveEntity(uint32_t entityID);
     // Removes all entities in the render list and index map
     void ClearEntities();
-    // Returns the list of entities being rendered
-    std::vector<Entity> GetEntities() const { return entities; }
+    // Returns a reference to the list of entities being rendered
+    std::vector<Entity>& GetEntities() { return entities; } 
     // Returns the number of entities in the render list
     size_t GetEntityCount() const { return entities.size(); }
     // Updates an entity's position given an ID
     void UpdateEntityPosition(uint32_t entityID, float newX, float newY);
-    // Updates an entity's collisions given an ID
-    void UpdateEntityCollisions(uint32_t entityID);
     // Flips an entity's sprite given an ID
     void FlipSprite(uint32_t entityID, bool flipX, bool flipY);
     // Returns a pointer to an entity given an ID
     Entity* GetEntityByID(uint32_t ID);
     
     void ToggleScalingMode();
+    void ToggleDebugCollisions();
 
 private:
     // Internal pointer to the underlying SDL renderer
@@ -72,6 +71,8 @@ private:
     float baseWindowWidth = 1920.0f;
     float baseWindowHeight = 1080.0f;
     void CalculateScalingFactors(float& scaleX, float& scaleY) const;
+
+    bool debugCollisions = false;
 };
 
 }

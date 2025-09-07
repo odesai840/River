@@ -53,22 +53,65 @@ void GameInterface::FlipSprite(uint32_t entityID, bool flipX, bool flipY) {
     }
 }
 
-void GameInterface::setGravity(float gravity) {
+void GameInterface::SetGravity(float gravity) {
     if (physicsRef){
-        physicsRef->setGravity(gravity);
+        physicsRef->SetGravity(gravity);
     }
 }
 
-float GameInterface::getGravity(){
+float GameInterface::GetGravity(){
     if (physicsRef){
-        return physicsRef->getGravity();
+        return physicsRef->GetGravity();
     }
     return 0.0f;
+}
+
+void GameInterface::ApplyForce(uint32_t entityID, float forceX, float forceY) {
+    Entity* entity = rendererRef->GetEntityByID(entityID);
+    if (entity) {
+        physicsRef->ApplyForce(*entity, Vec2(forceX, forceY));
+    }
+}
+
+void GameInterface::ApplyImpulse(uint32_t entityID, float impulseX, float impulseY) {
+    Entity* entity = rendererRef->GetEntityByID(entityID);
+    if (entity) {
+        physicsRef->ApplyImpulse(*entity, Vec2(impulseX, impulseY));
+    }
+}
+
+void GameInterface::SetVelocity(uint32_t entityID, float velX, float velY) {
+    Entity* entity = rendererRef->GetEntityByID(entityID);
+    if (entity) {
+        physicsRef->SetVelocity(*entity, Vec2(velX, velY));
+    }
+}
+
+Vec2 GameInterface::GetVelocity(uint32_t entityID) {
+    Entity* entity = rendererRef->GetEntityByID(entityID);
+    if (entity) {
+        return entity->velocity;
+    }
+    return Vec2::zero();
+}
+
+Vec2 GameInterface::GetPosition(uint32_t entityID) {
+    Entity* entity = rendererRef->GetEntityByID(entityID);
+    if (entity) {
+        return entity->position;
+    }
+    return Vec2::zero();
 }
 
 void GameInterface::ToggleScalingMode() {
     if (rendererRef) {
         rendererRef->ToggleScalingMode();
+    }
+}
+
+void GameInterface::ToggleDebugCollisions() {
+    if (rendererRef) {
+        rendererRef->ToggleDebugCollisions();
     }
 }
 
