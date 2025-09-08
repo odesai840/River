@@ -95,6 +95,13 @@ Vec2 GameInterface::GetVelocity(uint32_t entityID) {
     return Vec2::zero();
 }
 
+void GameInterface::SetPosition(uint32_t entityID, float newX, float newY) {
+    Entity* entity = rendererRef->GetEntityByID(entityID);
+    if (entity) {
+        rendererRef->SetPosition(*entity, Vec2(newX, newY));
+    }
+}
+
 Vec2 GameInterface::GetPosition(uint32_t entityID) {
     Entity* entity = rendererRef->GetEntityByID(entityID);
     if (entity) {

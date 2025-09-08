@@ -81,7 +81,7 @@ void Application::Run(GameInterface* game) {
         game->OnUpdate(deltaTime);
 
         // Update physics
-        while (physicsAccumulator >= FIXED_TIMESTEP) {
+        if (physicsAccumulator >= FIXED_TIMESTEP) {
             physics.UpdatePhysics(renderer.GetEntities(), FIXED_TIMESTEP);
             physicsAccumulator -= FIXED_TIMESTEP;
         }

@@ -48,6 +48,7 @@ protected:
     void ApplyImpulse(uint32_t entityID, float impulseX, float impulseY);
     void SetVelocity(uint32_t entityID, float velX, float velY);
     Vec2 GetVelocity(uint32_t entityID);
+    void SetPosition(uint32_t entityID, float newX, float newY);
     Vec2 GetPosition(uint32_t entityID);
     void ToggleScalingMode();
     void ToggleDebugCollisions();

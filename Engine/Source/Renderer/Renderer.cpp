@@ -295,6 +295,10 @@ Entity* Renderer::GetEntityByID(uint32_t entityID) {
     return (it != idToIndex.end()) ? &entities[it->second] : nullptr;
 }
 
+void Renderer::SetPosition(Entity& entity, const Vec2& position) {
+    entity.position = position;
+}
+
 void Renderer::ToggleScalingMode() {
     ScalingMode newMode = (scalingMode == ScalingMode::PixelBased) ?
                            ScalingMode::Proportional : ScalingMode::PixelBased;

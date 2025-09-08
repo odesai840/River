@@ -49,7 +49,7 @@ public:
     void FlipSprite(uint32_t entityID, bool flipX, bool flipY);
     // Returns a pointer to an entity given an ID
     Entity* GetEntityByID(uint32_t ID);
-    
+    void SetPosition(Entity& entityID, const Vec2& position);
     void ToggleScalingMode();
     void ToggleDebugCollisions();
 
