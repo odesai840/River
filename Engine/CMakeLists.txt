@@ -3,13 +3,15 @@ cmake_minimum_required(VERSION 3.16)
 
 # Collect all source files
 file(GLOB_RECURSE ENGINE_SOURCES 
-    "Source/*.cpp"
-    "Source/*.c"
+    "Source/**.cpp"
+    "Source/**.c"
 )
 
 file(GLOB_RECURSE ENGINE_HEADERS 
-    "Source/*.h"
-    "Source/*.hpp"
+    "Source/**.h"
+    "Source/**.hpp"
+    "ThirdParty/Include/**.h"
+    "ThirdParty/Include/**.hpp"
 )
 
 # Create the engine static library
@@ -26,6 +28,7 @@ target_include_directories(Engine
     PUBLIC 
         ${CMAKE_CURRENT_SOURCE_DIR}/Source
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/Core
+        ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/Include
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
