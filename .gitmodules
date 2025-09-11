@@ -4,3 +4,6 @@
 [submodule "Vendor/SDL_image"]
 	path = Vendor/SDL_image
 	url = https://github.com/libsdl-org/SDL_image.git
+[submodule "Vendor/libzmq"]
+	path = Vendor/libzmq
+	url = https://github.com/zeromq/libzmq.git

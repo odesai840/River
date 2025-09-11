@@ -30,3 +30,19 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/SDL/CMakeLists.txt")
 else()
     message(FATAL_ERROR "SDL subdirectory not found. Please add SDL3 source to Vendor/SDL.")
 endif()
+
+# Check if libzmq directory exists
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/libzmq/CMakeLists.txt")
+    message(STATUS "Building libzmq...")
+    
+    # Configure libzmq build options
+    set(BUILD_SHARED OFF CACHE BOOL "Build libzmq as shared library" FORCE)
+    set(BUILD_STATIC ON CACHE BOOL "Build libzmq as static library" FORCE)
+    set(BUILD_TESTS OFF CACHE BOOL "Build libzmq tests" FORCE)
+    set(ENABLE_CPACK OFF CACHE BOOL "Enable libzmq packaging" FORCE)
+    set(WITH_DOCS OFF CACHE BOOL "Build libzmq documentation" FORCE)
+    
+    add_subdirectory(libzmq)
+else()
+    message(FATAL_ERROR "libzmq subdirectory not found. Please add libzmq source to Vendor/libzmq.")
+endif()
