@@ -2,18 +2,18 @@
 
 namespace RiverCore {
 
-void Physics::UpdatePhysics(std::vector<Entity>& entities, float deltaTime) {
+void Physics::UpdatePhysics(std::vector<Entity>& entities, float fixedDeltaTime) {
     // Update physics for all entities that have physics enabled
     for (Entity& entity : entities) {
         if (entity.physApplied) {
             // Apply gravity
-            ApplyGravity(entity, deltaTime);
+            ApplyGravity(entity);
 
             // Apply drag
-            ApplyDrag(entity, deltaTime);
+            ApplyDrag(entity);
 
             // Integrate velocity into position
-            IntegrateVelocity(entity, deltaTime);
+            IntegrateVelocity(entity, fixedDeltaTime);
         }
     }
 
@@ -162,24 +162,24 @@ void Physics::SetVelocity(Entity& entity, const Vec2& velocity) {
     entity.velocity = velocity;
 }
 
-void Physics::ApplyGravity(Entity& entity, float deltaTime) {
+void Physics::ApplyGravity(Entity& entity) {
     Vec2 gravityForce = GetGravityVector() * entity.mass;
     ApplyForce(entity, gravityForce);
 }
 
-void Physics::ApplyDrag(Entity& entity, float deltaTime) {
+void Physics::ApplyDrag(Entity& entity) {
     if (entity.drag > 0.0f) {
         Vec2 dragForce = entity.velocity * (-entity.drag);
         ApplyForce(entity, dragForce);
     }
 }
 
-void Physics::IntegrateVelocity(Entity& entity, float deltaTime) {
+void Physics::IntegrateVelocity(Entity& entity, float fixedDeltaTime) {
     // Update velocity from acceleration
-    entity.velocity += entity.acceleration * deltaTime;
+    entity.velocity += entity.acceleration * fixedDeltaTime;
 
     // Update position from velocity
-    entity.position += entity.velocity * deltaTime;
+    entity.position += entity.velocity * fixedDeltaTime;
 
     // Reset acceleration (forces need to be applied each frame)
     entity.acceleration = Vec2::zero();

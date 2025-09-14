@@ -41,28 +41,39 @@ protected:
     std::vector<std::pair<uint32_t, int>> GetEntityCollisions(uint32_t entityID);
     // Flip an entity's sprite
     void FlipSprite(uint32_t entityID, bool flipX, bool flipY);
-    // Get sprite flip state
+    // Returns the X-axis flip state of an entity's sprite
     bool GetFlipX(uint32_t entityID);
+    // Get the Y-axis flip state of an entity's sprite
     bool GetFlipY(uint32_t entityID);
+    // Get the flip state of an entity's sprite
     bool GetFlipState(uint32_t entityID, bool& flipX, bool& flipY);
-    // Toggle sprite flip
+    // Toggles the X-axis flip state of an entity's sprite
     void ToggleFlipX(uint32_t entityID);
+    // Toggles the Y-axis flip state of an entity's sprite
     void ToggleFlipY(uint32_t entityID);
-    // Set collider type
+    // Sets an entity's collider type
     void SetColliderType(uint32_t entityID, ColliderType type);
     // Checks if a key is pressed
     bool IsKeyPressed(SDL_Scancode key);
-    //Set gravity
-    void SetGravity(const float gravity);
-    //Get Gravity
+    // Set gravity
+    void SetGravity(float gravity);
+    // Get Gravity
     float GetGravity();
+    // Applies a force to an entity
     void ApplyForce(uint32_t entityID, float forceX, float forceY);
+    // Applies an impulse to an entity
     void ApplyImpulse(uint32_t entityID, float impulseX, float impulseY);
+    // Sets an entity's velocity
     void SetVelocity(uint32_t entityID, float velX, float velY);
+    // Gets an entity's velocity
     Vec2 GetVelocity(uint32_t entityID);
+    // Sets an entity's position
     void SetPosition(uint32_t entityID, float newX, float newY);
+    // Gets an entity's position
     Vec2 GetPosition(uint32_t entityID);
+    // Toggles scaling mode
     void ToggleScalingMode();
+    // Toggles collision debug boxes
     void ToggleDebugCollisions();
     
 private:

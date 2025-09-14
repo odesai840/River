@@ -56,19 +56,19 @@ public:
     // Thread-safe function to set an entity's position
     void SetPosition(uint32_t entityID, const Vec2& position);
 
-    // Thread-safe function to get the X-axis flip state of an entity
+    // Thread-safe function to get the X-axis flip state of an entity's sprite
     bool GetFlipX(uint32_t entityID) const;
-    // Thread-safe function to get the Y-axis flip state of an entity
+    // Thread-safe function to get the Y-axis flip state of an entity's sprite
     bool GetFlipY(uint32_t entityID) const;
-    // Thread-safe function to get the flip state of an entity
+    // Thread-safe function to get the flip state of an entity's sprite
     bool GetFlipState(uint32_t entityID, bool& flipX, bool& flipY) const;
 
-    // Thread-safe function to toggle the X-axis flip state of an entity
+    // Thread-safe function to toggle the X-axis flip state of an entity's sprite
     void ToggleFlipX(uint32_t entityID);
-    // Thread-safe function to toggle the Y-axis flip state of an entity
+    // Thread-safe function to toggle the Y-axis flip state of an entity's sprite
     void ToggleFlipY(uint32_t entityID);
 
-    // Thread-safe function to set the collider type of an entity
+    // Thread-safe function to set the collider type for an entity
     void SetColliderType(uint32_t entityID, ColliderType type);
 
     // Thread-safe function to update the physics of all entities
