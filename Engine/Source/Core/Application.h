@@ -6,6 +6,10 @@
 #include "Renderer/Renderer.h"
 #include "Input/Input.h"
 #include "Physics/Physics.h"
+#include "Renderer/EntityManager.h"
+#include <thread>
+#include <mutex>
+#include <atomic>
 
 namespace RiverCore {
 
@@ -19,6 +23,9 @@ public:
     // Starts the core application loop
     void Run(GameInterface* game);
 
+    // Provides access to the entity manager
+    EntityManager& GetEntityManager() { return entityManager; }
+
 private:
     // Internal window class
     Window window;
@@ -28,10 +35,35 @@ private:
     Input input;
     // Internal physics class
     Physics physics;
+    // Internal entity manager class
+    EntityManager entityManager;
 
+    // Game interface reference for thread access
+    GameInterface* gameRef = nullptr;
+
+    // Atomic boolean to control thread loops
+    std::atomic<bool> running{true};
+    // Physics thread reference
+    std::thread physicsThread;
+    // Render thread reference
+    std::thread renderThread;
+
+    // Mutex for renderer synchronization
+    std::mutex renderMutex;
+    // Condition variable for renderer synchronization
+    std::condition_variable renderCondition;
+    // Atomic boolean to control the render thread loop
+    std::atomic<bool> renderReady{false};
+
+    // Physics thread function
+    void PhysicsThreadFunction();
+    // Render thread function
+    void RenderThreadFunction();
+
+    // Fixed 60 Hz timestep for physics updates
     static constexpr float FIXED_TIMESTEP = 1.0f / 60.0f;
+    // Maximum frame time for rendering
     static constexpr float MAX_FRAME_TIME = 0.25f;
-    float physicsAccumulator = 0.0f;
 };
 
 }

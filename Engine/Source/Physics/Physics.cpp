@@ -24,7 +24,7 @@ void Physics::UpdatePhysics(std::vector<Entity>& entities, float deltaTime) {
 void Physics::UpdateCollisions(std::vector<Entity>& entities) {
     // Clear all collision data
     for (Entity& entity : entities) {
-        entity.collisions.clear();
+        entity.collider.ClearCollisions();
     }
 
     // Check collisions between all entity pairs
@@ -33,6 +33,13 @@ void Physics::UpdateCollisions(std::vector<Entity>& entities) {
 
         for (size_t j = i + 1; j < entities.size(); ++j) {
             Entity& entityB = entities[j];
+
+            // Skip if either entity has no collision
+            if (entityA.collider.type == ColliderType::NONE ||
+                entityB.collider.type == ColliderType::NONE ||
+                !entityA.collider.enabled || !entityB.collider.enabled) {
+                continue;
+            }
 
             if (CheckAABBCollision(entityA, entityB)) {
                 // Determine collision sides
@@ -58,33 +65,36 @@ void Physics::UpdateCollisions(std::vector<Entity>& entities) {
 
                 // Check collision sides for entity A
                 if (by1 >= ay1 && by1 <= ay2) {
-                    entityA.collisions.push_back(std::pair<uint32_t, int>(entityB.ID, 0)); // top
+                    entityA.collider.AddCollision(entityB.ID, 0); // top
                 }
                 if (bx2 >= ax1 && bx2 <= ax2) {
-                    entityA.collisions.push_back(std::pair<uint32_t, int>(entityB.ID, 1)); // right
+                    entityA.collider.AddCollision(entityB.ID, 1); // right
                 }
                 if (by2 >= ay1 && by2 <= ay2) {
-                    entityA.collisions.push_back(std::pair<uint32_t, int>(entityB.ID, 2)); // bottom
+                    entityA.collider.AddCollision(entityB.ID, 2); // bottom
                 }
                 if (bx1 >= ax1 && bx1 <= ax2) {
-                    entityA.collisions.push_back(std::pair<uint32_t, int>(entityB.ID, 3)); // left
+                    entityA.collider.AddCollision(entityB.ID, 3); // left
                 }
 
                 // Check collision sides for entity B (opposite directions)
                 if (ay1 >= by1 && ay1 <= by2) {
-                    entityB.collisions.push_back(std::pair<uint32_t, int>(entityA.ID, 0)); // top
+                    entityB.collider.AddCollision(entityA.ID, 0); // top
                 }
                 if (ax2 >= bx1 && ax2 <= bx2) {
-                    entityB.collisions.push_back(std::pair<uint32_t, int>(entityA.ID, 1)); // right
+                    entityB.collider.AddCollision(entityA.ID, 1); // right
                 }
                 if (ay2 >= by1 && ay2 <= by2) {
-                    entityB.collisions.push_back(std::pair<uint32_t, int>(entityA.ID, 2)); // bottom
+                    entityB.collider.AddCollision(entityA.ID, 2); // bottom
                 }
                 if (ax1 >= bx1 && ax1 <= bx2) {
-                    entityB.collisions.push_back(std::pair<uint32_t, int>(entityA.ID, 3)); // left
+                    entityB.collider.AddCollision(entityA.ID, 3); // left
                 }
 
-                if (entityA.physApplied && !entityB.physApplied) { // A is dynamic, B is static
+                // Only resolve position if both entities are SOLID colliders
+                if (entityA.collider.type == ColliderType::SOLID &&
+                    entityB.collider.type == ColliderType::SOLID &&
+                    entityA.physApplied && !entityB.physApplied) { // A is dynamic, B is static
                     float overlapX = std::min(ax2, bx2) - std::max(ax1, bx1);
                     float overlapY = std::min(ay2, by2) - std::max(ay1, by1);
 

@@ -2,6 +2,7 @@
 #define GAME_INTERFACE_H
 
 #include "Renderer/Renderer.h"
+#include "Renderer/EntityManager.h"
 #include "Input/Input.h"
 #include "Physics/Physics.h"
 
@@ -21,7 +22,9 @@ public:
     // Set the internal input system reference (for use in the engine core only)
     void SetInput(Input* input) { this->inputRef = input; }
     // Set the internal physics system reference (for use in the engine core only)
-    void setPhysicsRef(Physics* physics) {this->physicsRef = physics;}
+    void SetPhysicsRef(Physics* physics) {this->physicsRef = physics;}
+    // Set the internal entity manager reference (for use in the engine core only)
+    void SetEntityManager(EntityManager* entityManager) { this->entityManagerRef = entityManager; }
     
 protected:
     // Add an entity to the scene
@@ -38,6 +41,15 @@ protected:
     std::vector<std::pair<uint32_t, int>> GetEntityCollisions(uint32_t entityID);
     // Flip an entity's sprite
     void FlipSprite(uint32_t entityID, bool flipX, bool flipY);
+    // Get sprite flip state
+    bool GetFlipX(uint32_t entityID);
+    bool GetFlipY(uint32_t entityID);
+    bool GetFlipState(uint32_t entityID, bool& flipX, bool& flipY);
+    // Toggle sprite flip
+    void ToggleFlipX(uint32_t entityID);
+    void ToggleFlipY(uint32_t entityID);
+    // Set collider type
+    void SetColliderType(uint32_t entityID, ColliderType type);
     // Checks if a key is pressed
     bool IsKeyPressed(SDL_Scancode key);
     //Set gravity
@@ -60,6 +72,8 @@ private:
     Input* inputRef = nullptr;
     // Internal physics reference (internal use only)
     Physics* physicsRef = nullptr;
+    // Internal entity manager reference (internal use only)
+    EntityManager* entityManagerRef = nullptr;
 };
 
 }
