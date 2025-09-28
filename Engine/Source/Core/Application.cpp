@@ -61,8 +61,6 @@ void Application::PhysicsThreadFunction() {
             physics.UpdatePhysics(entities, FIXED_TIMESTEP);
         });
 
-        // TODO: Update networking here
-
         // Sleep to maintain 60 Hz update rate
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
