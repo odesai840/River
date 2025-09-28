@@ -5,6 +5,7 @@
 #include "Renderer/EntityManager.h"
 #include "Input/Input.h"
 #include "Physics/Physics.h"
+#include "client.h"
 
 namespace RiverCore {
 
@@ -75,6 +76,10 @@ protected:
     void ToggleScalingMode();
     // Toggles collision debug boxes
     void ToggleDebugCollisions();
+    // Send velocity update
+    void sendVel(uint32_t playerId, float velx, float vely);
+    //Handle updates
+    bool update(uint32_t& playerId, float& velx, float& vely);
     
 private:
     // Internal renderer reference (internal use only)
@@ -85,6 +90,8 @@ private:
     Physics* physicsRef = nullptr;
     // Internal entity manager reference (internal use only)
     EntityManager* entityManagerRef = nullptr;
+    // Internal Server manager refernce (internal use only)
+    Client* clientRef = nullptr;
 };
 
 }

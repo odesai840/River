@@ -17,18 +17,11 @@ void RiverCore::server::reply() {
         zmq::message_t msg;
         auto res = pull.recv(msg, zmq::recv_flags::dontwait);
         if (res) {
-            int newX, int newY;
             std::string input(static_cast<char*>(msg.data()), msg.size());
-            int playerId; char cmd[16];
-            sscanf(input.c_str(), "%d %s", &playerId, cmd);
+            uint32_t playerId; char velX[16]; char velY[16];
+            sscanf(input.c_str(), "%d %s %s", &playerId, &velX, &velY);
 
-            if (std::string(cmd) == "left") {
-                newX = -300;
-            } else if (std::string(cmd) == "right") {
-                newX = 300;
-            }
-
-            std::string update = std::to_string(playerId) + " " + std::to_string(newX) + " " + std::to_string(newY);
+            std::string update = std::to_string(playerId) + " " + velX + " " + velY;
             zmq::message_t m(update.size());
             memcpy(m.data(), update.data(), update.size());
             publish.send(m, zmq::send_flags::none);

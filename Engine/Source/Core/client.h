@@ -1,17 +1,19 @@
-#ifdef CLIENT.H
-#define CLIENT.H
-namespace RiverCore{
-    class client {
-        public:
-            void initNetwork();
-            void shutdownNetwork();
+#ifndef CLIENT_H
+#define CLIENT_H
 
-            // send my movement update
-            void sendVel(int playerId, int velx, int vely);
+namespace RiverCore {
+    class Client {
+        public:
+            //Initalizes the network
+            void initPorts();
+            void shutdownPorts();
+
+            // Send velocity update
+            void sendVel(uint32_t playerId, float velx, float vely);
 
             //Handle updates
-            bool update(int& playerId, int& velx, int& vely);
-    }
+            bool update(uint32_t& playerId, float& velx, float& vely);
+    };
 }
 
 

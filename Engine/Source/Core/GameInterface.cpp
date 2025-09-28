@@ -174,4 +174,18 @@ void GameInterface::ToggleDebugCollisions() {
     }
 }
 
+void GameInterface::sendVel(uint32_t playerId, float velx, float vely) {
+    if (clientRef) {
+        clientRef -> sendVel(playerId, velx, vely);
+    }
+}
+
+bool GameInterface::update(uint32_t& playerId, float& velx, float& vely) {
+    if (clientRef) {
+        clientRef->update(playerId, velx, vely);
+        return true;
+    };
+    return false;
+}
+
 }
