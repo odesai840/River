@@ -7,6 +7,7 @@
 #include "Input/Input.h"
 #include "Physics/Physics.h"
 #include "Renderer/EntityManager.h"
+#include "Timeline.h"
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -37,6 +38,8 @@ private:
     Physics physics;
     // Internal entity manager class
     EntityManager entityManager;
+    // Timeline for time scaling and pause management
+    Timeline timeline;
 
     // Game interface reference for thread access
     GameInterface* gameRef = nullptr;

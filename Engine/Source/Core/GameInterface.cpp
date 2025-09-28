@@ -174,6 +174,44 @@ void GameInterface::ToggleDebugCollisions() {
     }
 }
 
+void GameInterface::SetTimeScale(float scale) {
+    if (timelineRef) {
+        timelineRef->SetTimeScale(scale);
+    }
+}
+
+float GameInterface::GetTimeScale() const {
+    if (timelineRef) {
+        return timelineRef->GetTimeScale();
+    }
+    return 1.0f;
+}
+
+void GameInterface::IncreaseTimeScale() {
+    if (timelineRef) {
+        timelineRef->IncreaseTimeScale();
+    }
+}
+
+void GameInterface::DecreaseTimeScale() {
+    if (timelineRef) {
+        timelineRef->DecreaseTimeScale();
+    }
+}
+
+void GameInterface::SetPaused(bool isPaused) {
+    if (timelineRef) {
+        timelineRef->SetPaused(isPaused);
+    }
+}
+
+bool GameInterface::IsPaused() const {
+    if (timelineRef) {
+        return timelineRef->IsPaused();
+    }
+    return false;
+}
+
 void GameInterface::sendVel(uint32_t playerId, float velx, float vely) {
     if (clientRef) {
         clientRef -> sendVel(playerId, velx, vely);

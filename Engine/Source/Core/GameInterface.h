@@ -5,6 +5,7 @@
 #include "Renderer/EntityManager.h"
 #include "Input/Input.h"
 #include "Physics/Physics.h"
+#include "Timeline.h"
 #include "client.h"
 
 namespace RiverCore {
@@ -26,6 +27,8 @@ public:
     void SetPhysicsRef(Physics* physics) {this->physicsRef = physics;}
     // Set the internal entity manager reference (for use in the engine core only)
     void SetEntityManager(EntityManager* entityManager) { this->entityManagerRef = entityManager; }
+    // Set timeline reference (for use in engine core only)
+    void SetTimeline(Timeline* timeline) { this->timelineRef = timeline; }
     
 protected:
     // Add an entity to the scene
@@ -76,6 +79,18 @@ protected:
     void ToggleScalingMode();
     // Toggles collision debug boxes
     void ToggleDebugCollisions();
+    // Sets the internal engine time scale to a custom time scale
+    void SetTimeScale(float scale);
+    // Gets the internal engine time scale
+    float GetTimeScale() const;
+    // Increases the internal engine time scale to the next default setting (eg. 1.0x -> 2.0x)
+    void IncreaseTimeScale();
+    // Decreases the internal engine time scale to the next default setting (eg. 1.0x -> 0.5x)
+    void DecreaseTimeScale();
+    // Sets the internal engine pause state
+    void SetPaused(bool isPaused);
+    // Returns the current engine pause state
+    bool IsPaused() const;
     // Send velocity update
     void sendVel(uint32_t playerId, float velx, float vely);
     //Handle updates
@@ -90,6 +105,8 @@ private:
     Physics* physicsRef = nullptr;
     // Internal entity manager reference (internal use only)
     EntityManager* entityManagerRef = nullptr;
+    // Internal timeline reference (internal use only)
+    Timeline* timelineRef = nullptr;
     // Internal Server manager refernce (internal use only)
     Client* clientRef = nullptr;
 };

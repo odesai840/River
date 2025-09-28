@@ -58,7 +58,8 @@ void Application::PhysicsThreadFunction() {
     while (running) {
         // Update physics system
         entityManager.UpdatePhysics([this](std::vector<Entity>& entities) {
-            physics.UpdatePhysics(entities, FIXED_TIMESTEP);
+            float effectiveTimestep = timeline.CalculateEffectiveTime(FIXED_TIMESTEP);
+            physics.UpdatePhysics(entities, effectiveTimestep);
         });
 
         // Sleep to maintain 60 Hz update rate
@@ -86,19 +87,21 @@ void Application::RenderThreadFunction() {
         lastTime = currentTime;
         deltaTime = std::min(deltaTime, MAX_FRAME_TIME);
 
+        float effectiveDeltaTime = timeline.CalculateEffectiveTime(deltaTime);
+
         // Reset render signal
         renderReady = false;
         // Release lock allow rendering events
         lock.unlock();
 
         // Update animations
-        entityManager.UpdateAnimations(deltaTime);
+        entityManager.UpdateAnimations(effectiveDeltaTime);
 
         // Update game logic
-        gameRef->OnUpdate(deltaTime);
+        gameRef->OnUpdate(effectiveDeltaTime);
 
         // Render the frame
-        renderer.BeginFrame(deltaTime, entityManager);
+        renderer.BeginFrame(effectiveDeltaTime, entityManager);
         renderer.EndFrame();
     }
 }
@@ -115,6 +118,7 @@ void Application::Run(GameInterface* game) {
     game->SetRenderer(&renderer);
     game->SetInput(&input);
     game->SetEntityManager(&entityManager);
+    game->SetTimeline(&timeline);
 
     // Run game start method
     game->OnStart();
