@@ -1,5 +1,5 @@
 #include "GameInterface.h"
-#include <iostream>
+
 namespace RiverCore {
 
 uint32_t GameInterface::AddEntity(const char* spritePath, float Xpos, float Ypos, float rotation,

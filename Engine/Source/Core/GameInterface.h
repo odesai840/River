@@ -6,7 +6,7 @@
 #include "Input/Input.h"
 #include "Physics/Physics.h"
 #include "Timeline.h"
-#include "NetworkManager.h"
+#include "Networking/NetworkManager.h"
 
 namespace RiverCore {
 

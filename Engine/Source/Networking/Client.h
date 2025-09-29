@@ -9,7 +9,7 @@
 
 namespace RiverCore {
 
-// Enhanced client data structure for PUB/SUB model
+// Struct for client data (other clients)
 struct OtherClientData {
     float x = 0.0f;
     float y = 0.0f;

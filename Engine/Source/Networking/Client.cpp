@@ -1,4 +1,4 @@
-#include "client.h"
+#include "Client.h"
 #include <zmq/zmq.hpp>
 #include <string>
 #include <iostream>
@@ -32,7 +32,7 @@ bool Client::Connect(const std::string& serverAddress) {
     try {
         InitializeSockets(serverAddress);
 
-        // Step 1: Perform connection handshake via REQ socket
+        // Perform connection handshake via REQ socket
         std::string connectMsg = "CONNECT";
         zmq::message_t request(connectMsg.size());
         memcpy(request.data(), connectMsg.data(), connectMsg.size());

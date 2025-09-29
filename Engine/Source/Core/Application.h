@@ -8,8 +8,7 @@
 #include "Physics/Physics.h"
 #include "Renderer/EntityManager.h"
 #include "Timeline.h"
-#include "server.h"
-#include "NetworkManager.h"
+#include "Networking/NetworkManager.h"
 #include <thread>
 #include <mutex>
 #include <atomic>

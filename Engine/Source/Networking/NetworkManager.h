@@ -1,7 +1,7 @@
 #ifndef NETWORKMANAGER_H
 #define NETWORKMANAGER_H
 
-#include "client.h"
+#include "Client.h"
 #include "Renderer/EntityManager.h"
 #include <unordered_map>
 #include <string>
