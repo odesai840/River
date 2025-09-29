@@ -31,6 +31,7 @@ void NetworkManager::Disconnect() {
 
     networkedPlayers.clear();
     lastKnownClients.clear();
+    lastKnownX.clear();
     localPlayerEntityId = 0;
 }
 
@@ -50,7 +51,7 @@ void NetworkManager::Update() {
         }
     }
 
-    // Automatic networked player management
+    // Networked player management
     UpdateNetworkedPlayers();
 }
 
@@ -89,14 +90,29 @@ void NetworkManager::UpdateNetworkedPlayers() {
                 lastKnownIt->second.y != clientData.y) {
 
                 uint32_t entityId = networkedPlayers[clientId];
+
+                // Check for horizontal movement to update sprite direction
+                auto lastXIt = lastKnownX.find(clientId);
+                if (lastXIt != lastKnownX.end()) {
+                    float previousX = lastXIt->second;
+                    float currentX = clientData.x;
+
+                    // Only flip sprite if there's significant horizontal movement
+                    float threshold = 0.1f;
+                    if (currentX < previousX - threshold) {
+                        // Moving left
+                        entityManagerRef->FlipSprite(entityId, false, false);
+                    } else if (currentX > previousX + threshold) {
+                        // Moving right
+                        entityManagerRef->FlipSprite(entityId, true, false);
+                    }
+                }
+
+                // Update position
                 entityManagerRef->SetPosition(entityId, Vec2(clientData.x, clientData.y));
 
-                // Log real-time position updates (can be removed for production)
-                static int updateCount = 0;
-                if (++updateCount % 60 == 0) { // Log every 60 updates (once per second at 60Hz)
-                    std::cout << "NetworkManager: Real-time position update for client " << clientId
-                              << " to (" << clientData.x << ", " << clientData.y << ")" << std::endl;
-                }
+                // Update stored X position for next comparison
+                lastKnownX[clientId] = clientData.x;
             }
         }
     }
@@ -106,6 +122,7 @@ void NetworkManager::UpdateNetworkedPlayers() {
     while (it != networkedPlayers.end()) {
         uint32_t clientId = it->first;
         if (currentClients.find(clientId) == currentClients.end()) {
+            std::cout << "NetworkManager: Client " << clientId << " no longer in server state, removing entity" << std::endl;
             RemoveNetworkedPlayer(clientId);
             it = networkedPlayers.erase(it);
         } else {
@@ -136,11 +153,16 @@ void NetworkManager::CreateNetworkedPlayer(uint32_t clientId, float x, float y) 
     // Store the mapping
     networkedPlayers[clientId] = entityId;
 
-    std::cout << "NetworkManager: Created networked player entity " << entityId << " for client " << clientId << std::endl;
+    // Initialize last known X position for sprite flipping
+    lastKnownX[clientId] = x;
+
+    std::cout << "NetworkManager: Created networked player entity " << entityId << " for client " << clientId
+              << " at position (" << x << ", " << y << ")" << std::endl;
 }
 
 void NetworkManager::RemoveNetworkedPlayer(uint32_t clientId) {
     if (!entityManagerRef) {
+        std::cout << "NetworkManager: Cannot remove networked player - no EntityManager reference" << std::endl;
         return;
     }
 
@@ -148,7 +170,13 @@ void NetworkManager::RemoveNetworkedPlayer(uint32_t clientId) {
     if (it != networkedPlayers.end()) {
         uint32_t entityId = it->second;
         entityManagerRef->RemoveEntity(entityId);
-        std::cout << "NetworkManager: Removed networked player entity " << entityId << " for client " << clientId << std::endl;
+
+        // Clean up last known X position tracking
+        lastKnownX.erase(clientId);
+
+        std::cout << "NetworkManager: Successfully removed networked player entity " << entityId << " for disconnected client " << clientId << std::endl;
+    } else {
+        std::cout << "NetworkManager: Warning - tried to remove non-existent networked player for client " << clientId << std::endl;
     }
 }
 

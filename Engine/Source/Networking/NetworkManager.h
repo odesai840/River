@@ -49,6 +49,8 @@ private:
     std::unordered_map<uint32_t, uint32_t> networkedPlayers;
     // Map of player IDs and their associated data
     std::unordered_map<uint32_t, OtherClientData> lastKnownClients;
+    // Map of player IDs and their last known X positions for sprite flipping
+    std::unordered_map<uint32_t, float> lastKnownX;
 
     // Creates a new networked player entity
     void CreateNetworkedPlayer(uint32_t clientId, float x, float y);

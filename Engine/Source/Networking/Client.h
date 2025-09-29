@@ -45,6 +45,7 @@ private:
     // Thread-safe connection state
     std::atomic<bool> connected{false};
     std::atomic<uint32_t> clientId{0};
+    std::atomic<bool> disconnecting{false};
 
     // Thread-safe client data management
     std::unordered_map<uint32_t, OtherClientData> otherClients;
@@ -55,23 +56,21 @@ private:
     std::atomic<float> currentY{0.0f};
     std::atomic<bool> positionDirty{false};
 
+    // Mutex for socket synchronization
+    mutable std::mutex socketMutex;
+
     // Connection timing
     std::chrono::time_point<std::chrono::steady_clock> lastPositionUpdate;
     static constexpr int POSITION_UPDATE_INTERVAL_MS = 16;
 
-    // Message parsing and processing
-    void ProcessIncomingMessages();
-    void ParseBroadcastMessage(const std::string& message);
-    void HandleClientConnected(uint32_t clientId, float x, float y);
-    void HandleClientDisconnected(uint32_t clientId);
-    void HandlePositionUpdate(uint32_t clientId, float x, float y, uint64_t timestamp);
+    // Game state management
+    void UpdateAndGetGameState();
+    void ParseGameStateResponse(const std::string& response);
 
     // Socket management
     void InitializeSockets(const std::string& serverAddress);
     void CleanupSockets();
 
-    // Position update sending
-    void SendPositionUpdateToServer();
 };
 
 }

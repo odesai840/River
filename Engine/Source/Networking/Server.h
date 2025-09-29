@@ -14,7 +14,6 @@ struct ClientData {
     float x = 0.0f;
     float y = 0.0f;
     std::chrono::time_point<std::chrono::steady_clock> lastUpdate;
-    bool positionChanged = false;
 
     ClientData() : lastUpdate(std::chrono::steady_clock::now()) {}
     ClientData(float x, float y) : x(x), y(y), lastUpdate(std::chrono::steady_clock::now()) {}
@@ -47,27 +46,16 @@ private:
     // Server running state
     std::atomic<bool> running{false};
 
-    // 60hz broadcast interval
-    static constexpr int BROADCAST_INTERVAL_MS = 16;
-
     // Processes server connections
     void ProcessConnectionRequests();
-    // Broadcasts game state to connected clients
-    void BroadcastGameState();
 
     // Handles connecting clients to the server
     uint32_t HandleConnect();
     // Handles disconnecting clients from the server
     void HandleDisconnect(uint32_t clientId);
 
-    // Broadcasts new connections to clients
-    void BroadcastClientConnected(uint32_t clientId, float x, float y);
-    // Broadcasts disconnections to clients
-    void BroadcastClientDisconnected(uint32_t clientId);
-    // Broadcasts client position updates to clients
-    void BroadcastPositionUpdate(uint32_t clientId, float x, float y);
-    // Broadcasts server messages
-    void BroadcastMessage(const std::string& message);
+    // Gets current game state as response string
+    std::string GetGameStateResponse();
 
     // Initializes sockets
     void InitializeSockets();

@@ -11,8 +11,7 @@ namespace RiverCore {
 
 // Global ZMQ context and sockets
 static zmq::context_t context(1);
-static zmq::socket_t* repSocket = nullptr;  // For connection handshake (port 5556)
-static zmq::socket_t* pubSocket = nullptr;  // For broadcasting game state (port 5555)
+static zmq::socket_t* repSocket = nullptr;
 
 Server::Server() {
     
@@ -35,15 +34,11 @@ void Server::Start() {
         InitializeSockets();
         running = true;
 
-        // Start two main processing threads
+        // Start connection processing thread
         std::thread connectionThread(&Server::ProcessConnectionRequests, this);
-        std::thread broadcastThread(&Server::BroadcastGameState, this);
 
-        std::cout << "Server started successfully. Connection handshake on port 5556, broadcasting on port 5555\n";
-
-        // Wait for threads to complete
+        // Wait for thread to complete
         connectionThread.join();
-        broadcastThread.join();
 
     } catch (const std::exception& e) {
         std::cout << "Failed to start server: " << e.what() << "\n";
@@ -69,17 +64,13 @@ void Server::Stop() {
 
 void Server::InitializeSockets() {
     try {
-        // Create REP socket for connection handshake
+        // Create REP socket for all client-server communication
         repSocket = new zmq::socket_t(context, zmq::socket_type::rep);
-        repSocket->bind("tcp://*:5556");
+        repSocket->bind("tcp://*:5555");
 
-        // Create PUB socket for broadcasting game state
-        pubSocket = new zmq::socket_t(context, zmq::socket_type::pub);
-        pubSocket->bind("tcp://*:5555");
-
-        // Set high water mark to prevent message queuing issues
-        int hwm = 1000;
-        pubSocket->set(zmq::sockopt::sndhwm, hwm);
+        // Set shorter timeout for responsive 60Hz operation
+        int timeout = 100;
+        repSocket->set(zmq::sockopt::rcvtimeo, timeout);
 
     } catch (const zmq::error_t& e) {
         CleanupSockets();
@@ -97,20 +88,10 @@ void Server::CleanupSockets() {
             std::cout << "Error closing REP socket: " << e.what() << "\n";
         }
     }
-
-    if (pubSocket) {
-        try {
-            pubSocket->close();
-            delete pubSocket;
-            pubSocket = nullptr;
-        } catch (const std::exception& e) {
-            std::cout << "Error closing PUB socket: " << e.what() << "\n";
-        }
-    }
 }
 
 void Server::ProcessConnectionRequests() {
-    std::cout << "Connection handler started - listening on port 5556\n";
+    std::cout << "Server started successfully. Listening on port 5555\n";
 
     while (running.load()) {
         try {
@@ -125,7 +106,6 @@ void Server::ProcessConnectionRequests() {
 
             if (result) {
                 std::string requestStr(static_cast<char*>(request.data()), request.size());
-                std::cout << "Received connection request: " << requestStr << "\n";
 
                 std::istringstream iss(requestStr);
                 std::string command;
@@ -133,9 +113,12 @@ void Server::ProcessConnectionRequests() {
 
                 std::string response;
                 if (command == "CONNECT") {
+                    std::cout << "Received connection request: " << requestStr << "\n";
                     uint32_t newClientId = HandleConnect();
                     response = "CONNECTED " + std::to_string(newClientId) + " 0.0 0.0";
+                    std::cout << "Sent connection response: " << response << "\n";
                 } else if (command == "DISCONNECT") {
+                    std::cout << "Received disconnect request: " << requestStr << "\n";
                     uint32_t clientId;
                     if (iss >> clientId) {
                         HandleDisconnect(clientId);
@@ -143,25 +126,26 @@ void Server::ProcessConnectionRequests() {
                     } else {
                         response = "ERROR Invalid disconnect format";
                     }
-                } else if (command == "POSITION") {
+                    std::cout << "Sent disconnect response: " << response << "\n";
+                } else if (command == "UPDATE_AND_GET_STATE") {
                     uint32_t clientId;
                     float x, y;
                     if (iss >> clientId >> x >> y) {
                         UpdateClientPosition(clientId, x, y);
-                        response = "OK";
+                        response = GetGameStateResponse();
                     } else {
-                        response = "ERROR Invalid position format";
+                        response = "ERROR Invalid update format";
                     }
                 } else {
+                    std::cout << "Received unknown request: " << requestStr << "\n";
                     response = "ERROR Unknown command: " + command;
+                    std::cout << "Sent error response: " << response << "\n";
                 }
 
                 // Send response back to client
                 zmq::message_t reply(response.size());
                 memcpy(reply.data(), response.data(), response.size());
                 repSocket->send(reply, zmq::send_flags::none);
-
-                std::cout << "Sent connection response: " << response << "\n";
             }
 
             // Small sleep to prevent busy waiting
@@ -179,54 +163,16 @@ void Server::ProcessConnectionRequests() {
     std::cout << "Connection handler stopped\n";
 }
 
-void Server::BroadcastGameState() {
-    std::cout << "Broadcast handler started - broadcasting on port 5555 at 60Hz\n";
-
-    while (running.load()) {
-        try {
-            auto startTime = std::chrono::steady_clock::now();
-
-            // Broadcast position updates for clients whose positions have changed
-            {
-                std::lock_guard<std::mutex> lock(clientDataMutex);
-                for (auto& [clientId, data] : clientData) {
-                    if (data.positionChanged) {
-                        BroadcastPositionUpdate(clientId, data.x, data.y);
-                        data.positionChanged = false; // Reset the flag
-                    }
-                }
-            }
-
-            // Calculate sleep time to maintain 60Hz
-            auto endTime = std::chrono::steady_clock::now();
-            auto processingTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-            auto sleepTime = std::chrono::milliseconds(BROADCAST_INTERVAL_MS) - processingTime;
-
-            if (sleepTime > std::chrono::milliseconds(0)) {
-                std::this_thread::sleep_for(sleepTime);
-            }
-
-        } catch (const std::exception& e) {
-            std::cout << "Error in broadcast handler: " << e.what() << "\n";
-            std::this_thread::sleep_for(std::chrono::milliseconds(BROADCAST_INTERVAL_MS));
-        }
-    }
-
-    std::cout << "Broadcast handler stopped\n";
-}
 
 uint32_t Server::HandleConnect() {
     uint32_t newClientId = nextClientID.fetch_add(1);
 
     {
         std::lock_guard<std::mutex> lock(clientDataMutex);
-        clientData[newClientId] = ClientData(0.0f, 0.0f); // Spawn at origin
+        clientData[newClientId] = ClientData(0.0f, 0.0f);
     }
 
     std::cout << "Client " << newClientId << " connected. Total clients: " << clientData.size() << "\n";
-
-    // Broadcast to all other clients that a new client connected
-    BroadcastClientConnected(newClientId, 0.0f, 0.0f);
 
     return newClientId;
 }
@@ -240,9 +186,6 @@ void Server::HandleDisconnect(uint32_t clientId) {
             std::cout << "Client " << clientId << " disconnected. Total clients: " << clientData.size() << "\n";
         }
     }
-
-    // Broadcast to all remaining clients that this client disconnected
-    BroadcastClientDisconnected(clientId);
 }
 
 void Server::UpdateClientPosition(uint32_t clientId, float x, float y) {
@@ -254,7 +197,6 @@ void Server::UpdateClientPosition(uint32_t clientId, float x, float y) {
             it->second.x = x;
             it->second.y = y;
             it->second.lastUpdate = std::chrono::steady_clock::now();
-            it->second.positionChanged = true;
         }
     }
 }
@@ -263,40 +205,16 @@ void Server::RemoveClient(uint32_t clientId) {
     HandleDisconnect(clientId);
 }
 
-void Server::BroadcastClientConnected(uint32_t clientId, float x, float y) {
+std::string Server::GetGameStateResponse() {
     std::ostringstream oss;
-    oss << "CLIENT_CONNECTED:" << clientId << " " << x << " " << y;
-    BroadcastMessage(oss.str());
-}
+    oss << "OK";
 
-void Server::BroadcastClientDisconnected(uint32_t clientId) {
-    std::ostringstream oss;
-    oss << "CLIENT_DISCONNECTED:" << clientId;
-    BroadcastMessage(oss.str());
-}
-
-void Server::BroadcastPositionUpdate(uint32_t clientId, float x, float y) {
-    std::ostringstream oss;
-    oss << "POSITION_UPDATE:" << clientId << " " << x << " " << y << " "
-        << std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now().time_since_epoch()).count();
-    BroadcastMessage(oss.str());
-}
-
-void Server::BroadcastMessage(const std::string& message) {
-    if (!pubSocket || !running.load()) {
-        return;
+    std::lock_guard<std::mutex> lock(clientDataMutex);
+    for (const auto& [clientId, data] : clientData) {
+        oss << " " << clientId << " " << data.x << " " << data.y;
     }
 
-    try {
-        zmq::message_t zmqMessage(message.size());
-        memcpy(zmqMessage.data(), message.data(), message.size());
-        pubSocket->send(zmqMessage, zmq::send_flags::dontwait);
-    } catch (const zmq::error_t& e) {
-        if (e.num() != ETERM) {
-            std::cout << "Failed to broadcast message: " << e.what() << "\n";
-        }
-    }
+    return oss.str();
 }
 
 }
