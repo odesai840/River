@@ -1,5 +1,5 @@
 #include "GameInterface.h"
-
+#include <iostream>
 namespace RiverCore {
 
 uint32_t GameInterface::AddEntity(const char* spritePath, float Xpos, float Ypos, float rotation,
@@ -213,6 +213,9 @@ bool GameInterface::IsPaused() const {
 }
 
 void GameInterface::sendVel(uint32_t playerId, float velx, float vely) {
+    if (!clientRef) {
+        std::cout << "bad";
+    }
     if (clientRef) {
         clientRef -> sendVel(playerId, velx, vely);
     }

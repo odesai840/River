@@ -4,6 +4,9 @@
 namespace RiverCore {
     class Client {
         public:
+            Client() = default;
+
+
             //Initalizes the network
             void initPorts();
             void shutdownPorts();

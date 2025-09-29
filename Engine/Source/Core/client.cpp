@@ -1,4 +1,4 @@
-#include <zmq.hpp>
+#include <zmq/zmq.hpp>
 #include <string>
 #include <iostream>
 #include "client.h"
@@ -24,7 +24,9 @@ namespace RiverCore{
     }
 
     void Client::sendVel(uint32_t playerId, float velx, float vely) {
+        std::cout << "test";
         std::string msg = std::to_string(playerId) + " " + std::to_string(velx) + " " + std::to_string(vely);
+        
         zmq::message_t message(msg.size());
         memcpy(message.data(), msg.data(), msg.size());
         push->send(message, zmq::send_flags::none);

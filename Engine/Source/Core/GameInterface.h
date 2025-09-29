@@ -29,6 +29,8 @@ public:
     void SetEntityManager(EntityManager* entityManager) { this->entityManagerRef = entityManager; }
     // Set timeline reference (for use in engine core only)
     void SetTimeline(Timeline* timeline) { this->timelineRef = timeline; }
+    // Set client reference (for use in engine core only)
+    void SetClient(Client* client) {this->clientRef = client;}
     
 protected:
     // Add an entity to the scene
