@@ -8,9 +8,12 @@
 #include "Physics/Physics.h"
 #include "Renderer/EntityManager.h"
 #include "Timeline.h"
+#include "server.h"
+#include "NetworkManager.h"
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <string>
 
 namespace RiverCore {
 
@@ -23,6 +26,10 @@ public:
     void Init();
     // Starts the core application loop
     void Run(GameInterface* game);
+    // Starts the server loop (headless)
+    void RunServer();
+    // Starts the client loop with server connection
+    void RunClient(const std::string& serverAddress, GameInterface* game);
 
     // Provides access to the entity manager
     EntityManager& GetEntityManager() { return entityManager; }
@@ -40,6 +47,8 @@ private:
     EntityManager entityManager;
     // Timeline for time scaling and pause management
     Timeline timeline;
+    // Network manager for client networking
+    NetworkManager networkManager;
 
     // Game interface reference for thread access
     GameInterface* gameRef = nullptr;
@@ -50,6 +59,8 @@ private:
     std::thread physicsThread;
     // Render thread reference
     std::thread renderThread;
+    // Network thread reference
+    std::thread networkThread;
 
     // Mutex for renderer synchronization
     std::mutex renderMutex;
@@ -62,6 +73,8 @@ private:
     void PhysicsThreadFunction();
     // Render thread function
     void RenderThreadFunction();
+    // Network thread function
+    void NetworkThreadFunction();
 
     // Fixed 60 Hz timestep for physics updates
     static constexpr float FIXED_TIMESTEP = 1.0f / 60.0f;

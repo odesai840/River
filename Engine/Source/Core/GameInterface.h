@@ -6,7 +6,7 @@
 #include "Input/Input.h"
 #include "Physics/Physics.h"
 #include "Timeline.h"
-#include "client.h"
+#include "NetworkManager.h"
 
 namespace RiverCore {
 
@@ -29,8 +29,8 @@ public:
     void SetEntityManager(EntityManager* entityManager) { this->entityManagerRef = entityManager; }
     // Set timeline reference (for use in engine core only)
     void SetTimeline(Timeline* timeline) { this->timelineRef = timeline; }
-    // Set client reference (for use in engine core only)
-    void SetClient(Client* client) {this->clientRef = client;}
+    // Set network manager reference (for use in engine core only)
+    void SetNetworkManager(NetworkManager* networkManager) { this->networkManagerRef = networkManager; }
     
 protected:
     // Add an entity to the scene
@@ -93,10 +93,8 @@ protected:
     void SetPaused(bool isPaused);
     // Returns the current engine pause state
     bool IsPaused() const;
-    // Send velocity update
-    void sendVel(uint32_t playerId, float velx, float vely);
-    //Handle updates
-    bool update(uint32_t& playerId, float& velx, float& vely);
+    // Set local player entity for networking (client only)
+    void SetLocalPlayer(uint32_t entityId);
     
 private:
     // Internal renderer reference (internal use only)
@@ -109,8 +107,8 @@ private:
     EntityManager* entityManagerRef = nullptr;
     // Internal timeline reference (internal use only)
     Timeline* timelineRef = nullptr;
-    // Internal Server manager refernce (internal use only)
-    Client* clientRef = nullptr;
+    // Internal network manager reference (internal use only)
+    NetworkManager* networkManagerRef = nullptr;
 };
 
 }

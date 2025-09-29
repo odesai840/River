@@ -11,7 +11,7 @@ Application::Application() {
     // Initialize the input handler object
     input = Input();
 
-    // Initalize the physics class object
+    // Initialize the physics class object
     physics = Physics();
 }
 
@@ -25,6 +25,9 @@ Application::~Application() {
     }
     if (renderThread.joinable()) {
         renderThread.join();
+    }
+    if (networkThread.joinable()) {
+        networkThread.join();
     }
 }
 
@@ -106,6 +109,16 @@ void Application::RenderThreadFunction() {
     }
 }
 
+void Application::NetworkThreadFunction() {
+    while (running) {
+        // Update networking system
+        networkManager.Update();
+
+        // Sleep to maintain 60 Hz update rate
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+    }
+}
+
 void Application::Run(GameInterface* game) {
     // Initialize engine systems
     Init();
@@ -166,5 +179,97 @@ void Application::Run(GameInterface* game) {
     SDL_DestroyWindow(window.GetNativeWindow());
     SDL_Quit();
 }
+
+void Application::RunServer() {
+    // Initialize server
+    Server server;
+    server.Start();
+
+    std::cout << "Headless server started successfully. Press Ctrl+C to stop.\n";
+
+    // Keep server running until interrupted
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+}
+
+void Application::RunClient(const std::string& serverAddress, GameInterface* game) {
+    // Initialize engine systems
+    Init();
+
+    // Initialize game interface reference
+    gameRef = game;
+
+    // Set up game references
+    game->SetPhysicsRef(&physics);
+    game->SetRenderer(&renderer);
+    game->SetInput(&input);
+    game->SetEntityManager(&entityManager);
+    game->SetTimeline(&timeline);
+
+    // Initialize NetworkManager and connect to server
+    networkManager.SetEntityManager(&entityManager);
+    if (!networkManager.Connect(serverAddress)) {
+        std::cout << "Failed to connect to server at " << serverAddress << std::endl;
+        return;
+    }
+
+    // Set network manager reference for game
+    game->SetNetworkManager(&networkManager);
+
+    // Run game start method
+    game->OnStart();
+
+    // Start worker threads
+    physicsThread = std::thread(&Application::PhysicsThreadFunction, this);
+    renderThread = std::thread(&Application::RenderThreadFunction, this);
+    networkThread = std::thread(&Application::NetworkThreadFunction, this);
+
+    // Main update loop
+    bool done = false;
+    while (!done && running) {
+        // Handle SDL quit event
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_EVENT_QUIT) {
+                done = true;
+            }
+        }
+
+        // Update input state
+        SDL_PumpEvents();
+
+        // Signal render thread to render this frame
+        {
+            std::lock_guard<std::mutex> lock(renderMutex);
+            renderReady = true;
+        }
+        renderCondition.notify_one();
+    }
+
+    // Disconnect from server
+    networkManager.Disconnect();
+
+    // Signal threads to stop
+    running = false;
+    renderCondition.notify_all();
+
+    // Wait for threads to finish
+    if (physicsThread.joinable()) {
+        physicsThread.join();
+    }
+    if (renderThread.joinable()) {
+        renderThread.join();
+    }
+    if (networkThread.joinable()) {
+        networkThread.join();
+    }
+
+    // Clean up SDL resources
+    SDL_DestroyRenderer(renderer.GetRenderer());
+    SDL_DestroyWindow(window.GetNativeWindow());
+    SDL_Quit();
+}
+
 
 }

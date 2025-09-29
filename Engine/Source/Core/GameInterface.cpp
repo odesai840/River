@@ -212,21 +212,10 @@ bool GameInterface::IsPaused() const {
     return false;
 }
 
-void GameInterface::sendVel(uint32_t playerId, float velx, float vely) {
-    if (!clientRef) {
-        std::cout << "bad";
+void GameInterface::SetLocalPlayer(uint32_t entityId) {
+    if (networkManagerRef) {
+        networkManagerRef->SetLocalPlayer(entityId);
     }
-    if (clientRef) {
-        clientRef -> sendVel(playerId, velx, vely);
-    }
-}
-
-bool GameInterface::update(uint32_t& playerId, float& velx, float& vely) {
-    if (clientRef) {
-        clientRef->update(playerId, velx, vely);
-        return true;
-    };
-    return false;
 }
 
 }
