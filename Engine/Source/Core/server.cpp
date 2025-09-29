@@ -134,7 +134,7 @@ void Server::ProcessConnectionRequests() {
                 std::string response;
                 if (command == "CONNECT") {
                     uint32_t newClientId = HandleConnect();
-                    response = "CONNECTED " + std::to_string(newClientId);
+                    response = "CONNECTED " + std::to_string(newClientId) + " 0.0 0.0";
                 } else if (command == "DISCONNECT") {
                     uint32_t clientId;
                     if (iss >> clientId) {
