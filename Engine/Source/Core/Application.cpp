@@ -115,8 +115,12 @@ void Application::NetworkThreadFunction() {
         // Update networking system
         networkManager.Update();
 
-        // Sleep to maintain 60 Hz update rate
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        // Sleep duration scaled by timeline to simulate different update rates
+        float baseIntervalMs = 16.0f;
+        float timeScale = timeline.GetTimeScale();
+        float adjustedInterval = baseIntervalMs / timeScale;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(adjustedInterval)));
     }
 }
 
