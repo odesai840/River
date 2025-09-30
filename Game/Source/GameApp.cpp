@@ -29,6 +29,12 @@ int main(int argc, char* argv[]) {
             app.RunClient(serverAddress, &mainBehavior);
             return 0;
         }
+        else if (arg1 == "--listen") {
+            // Run as listen server
+            std::cout << "Starting River listen server...\n";
+            app.RunServer(&mainBehavior, false);
+            return 0;
+        }
         else {
             std::cout << "Unknown argument: " << arg1 << "\n";
             std::cout << "Usage: River [--server | --client [address]]\n";

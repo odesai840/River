@@ -110,6 +110,46 @@ void Application::RenderThreadFunction() {
     }
 }
 
+void Application::RenderThreadFunction_ListenServer(Server* server) {
+    // Last frame time
+    auto lastTime = std::chrono::high_resolution_clock::now();
+
+    while (running) {
+        // Wait for a render signal from the main thread
+        std::unique_lock<std::mutex> lock(renderMutex);
+        renderCondition.wait(lock, [this] { return renderReady.load() || !running.load(); });
+
+        // Stop render thread if the application was just stopped
+        if (!running) {
+            break;
+        }
+
+        // Calculate delta time
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+        lastTime = currentTime;
+        deltaTime = std::min(deltaTime, MAX_FRAME_TIME);
+
+        float effectiveDeltaTime = timeline.CalculateEffectiveTime(deltaTime);
+
+        // Reset render signal
+        renderReady = false;
+        // Release lock allow rendering events
+        lock.unlock();
+
+        // NOTE: Animations are updated by server's simulation loop
+        // No need to update animations here
+
+        // NOTE: Game logic is also updated by server's simulation loop
+        // Local input handling is done in ServerUpdate() when !IsHeadlessServer()
+        // No need to call OnUpdate here - would cause double updates and race conditions
+
+        // Render the frame using SERVER's EntityManager (not app's)
+        renderer.BeginFrame(effectiveDeltaTime, server->GetEntityManager());
+        renderer.EndFrame();
+    }
+}
+
 void Application::NetworkThreadFunction() {
     while (running) {
         // Update networking system
@@ -214,9 +254,20 @@ void Application::RunServer(GameInterface* game, bool headless) {
     game->SetInputManager(&server.GetInputManager());
     game->SetMode(NetworkMode::SERVER);
     game->SetServerRef(&server);
+    game->SetHeadlessServer(headless);
 
-    // Enable headless mode for server's entity manager
-    server.GetEntityManager().SetHeadlessMode(true);
+    // Set input for listen-server
+    if (!headless) {
+        game->SetInput(&input);
+    }
+
+    // Enable headless mode only for dedicated servers
+    server.GetEntityManager().SetHeadlessMode(headless);
+
+    // Set renderer for listen-server entity manager
+    if (!headless) {
+        server.GetEntityManager().SetRenderer(renderer.GetRenderer());
+    }
 
     // Initialize game logic
     game->OnStart();
@@ -233,8 +284,8 @@ void Application::RunServer(GameInterface* game, bool headless) {
         gameRef = game;
         game->SetRenderer(&renderer);
 
-        // Start render thread
-        renderThread = std::thread(&Application::RenderThreadFunction, this);
+        // Start render thread with server's EntityManager
+        renderThread = std::thread(&Application::RenderThreadFunction_ListenServer, this, &server);
 
         // Main event loop
         bool done = false;
@@ -263,6 +314,12 @@ void Application::RunServer(GameInterface* game, bool headless) {
 
         if (renderThread.joinable()) {
             renderThread.join();
+        }
+
+        // Stop server and wait for server thread to finish
+        server.Stop();
+        if (serverThread.joinable()) {
+            serverThread.join();
         }
 
         SDL_DestroyRenderer(renderer.GetRenderer());

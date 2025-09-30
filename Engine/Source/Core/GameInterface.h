@@ -46,6 +46,8 @@ public:
     void SetServerRef(Server* server) { this->serverRef = server; }
     // Set network mode (for use in engine core only)
     void SetMode(NetworkMode mode) { this->currentMode = mode; }
+    // Set headless server flag (for server mode only)
+    void SetHeadlessServer(bool headless) { headlessServer = headless; }
     
 protected:
     // Add an entity to the scene
@@ -113,6 +115,7 @@ protected:
     bool IsServer() const { return currentMode == NetworkMode::SERVER; }
     bool IsClient() const { return currentMode == NetworkMode::CLIENT; }
     bool IsStandalone() const { return currentMode == NetworkMode::STANDALONE; }
+    bool IsHeadlessServer() const { return headlessServer; }
 
     // Server-only functions
     InputState GetInputForClient(uint32_t clientID);
@@ -145,6 +148,8 @@ private:
     Server* serverRef = nullptr;
     // Current network mode
     NetworkMode currentMode = NetworkMode::STANDALONE;
+    // Headless server flag (server mode only)
+    bool headlessServer = false;
 };
 
 }

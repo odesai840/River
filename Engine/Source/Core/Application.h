@@ -17,6 +17,9 @@
 
 namespace RiverCore {
 
+// Forward declarations
+class Server;
+
 class Application {
 public:
     Application();
@@ -76,6 +79,8 @@ private:
     void PhysicsThreadFunction();
     // Render thread function
     void RenderThreadFunction();
+    // Listen-server render thread function (uses server's EntityManager)
+    void RenderThreadFunction_ListenServer(Server* server);
     // Network thread function
     void NetworkThreadFunction();
 

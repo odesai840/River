@@ -176,11 +176,11 @@ uint32_t Server::HandleConnect(void* socket) {
     int timeout = 100;
     clientSocket->set(zmq::sockopt::rcvtimeo, timeout);
 
-    // Spawn client thread
+    // Create client connection (but don't start thread yet)
     auto conn = std::make_unique<ClientConnection>();
     conn->clientID = clientID;
     conn->active = true;
-    conn->thread = std::thread(&Server::ClientThread, this, clientID, clientSocket);
+    // NOTE: Thread not started yet to avoid race condition
 
     {
         std::lock_guard<std::mutex> lock(clientConnectionsMutex);
@@ -188,11 +188,23 @@ uint32_t Server::HandleConnect(void* socket) {
     }
 
     // Send current world state to new client (queue all existing entities)
+    // This must happen BEFORE the client thread starts to avoid race condition
     SendWorldStateToClient(clientID, clientSocket);
 
     // Notify game logic (spawn player and broadcast to all clients)
     if (gameLogic) {
         gameLogic->OnClientConnected(clientID);
+    }
+
+    // NOW start the client thread (world state is already queued)
+    {
+        std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+        for (auto& c : clientConnections) {
+            if (c->clientID == clientID) {
+                c->thread = std::thread(&Server::ClientThread, this, clientID, clientSocket);
+                break;
+            }
+        }
     }
 
     return clientID;
