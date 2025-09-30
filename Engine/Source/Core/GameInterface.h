@@ -7,8 +7,13 @@
 #include "Physics/Physics.h"
 #include "Timeline.h"
 #include "Networking/NetworkManager.h"
+#include "NetworkMode.h"
 
 namespace RiverCore {
+
+// Forward declarations
+class Server;
+class ServerInputManager;
 
 class GameInterface {
 public:
@@ -18,6 +23,10 @@ public:
     virtual void OnStart() {}
     // Runs for every frame
     virtual void OnUpdate(float deltaTime) {}
+
+    // Optional callbacks for server mode
+    virtual void OnClientConnected(uint32_t clientID) {}
+    virtual void OnClientDisconnected(uint32_t clientID) {}
 
     // Set the internal renderer reference (for use in the engine core only)
     void SetRenderer(Renderer* renderer) { this->rendererRef = renderer; }
@@ -31,6 +40,12 @@ public:
     void SetTimeline(Timeline* timeline) { this->timelineRef = timeline; }
     // Set network manager reference (for use in engine core only)
     void SetNetworkManager(NetworkManager* networkManager) { this->networkManagerRef = networkManager; }
+    // Set server input manager reference (for server mode only)
+    void SetInputManager(ServerInputManager* inputManager) { this->serverInputManagerRef = inputManager; }
+    // Set server reference (for server mode only)
+    void SetServerRef(Server* server) { this->serverRef = server; }
+    // Set network mode (for use in engine core only)
+    void SetMode(NetworkMode mode) { this->currentMode = mode; }
     
 protected:
     // Add an entity to the scene
@@ -93,9 +108,24 @@ protected:
     void SetPaused(bool isPaused);
     // Returns the current engine pause state
     bool IsPaused() const;
-    // Set local player entity for networking (client only)
-    void SetLocalPlayer(uint32_t entityId);
-    
+
+    // Mode detection
+    bool IsServer() const { return currentMode == NetworkMode::SERVER; }
+    bool IsClient() const { return currentMode == NetworkMode::CLIENT; }
+    bool IsStandalone() const { return currentMode == NetworkMode::STANDALONE; }
+
+    // Server-only functions
+    InputState GetInputForClient(uint32_t clientID);
+    std::vector<uint32_t> GetConnectedClients();
+    uint32_t GetPlayerEntityForClient(uint32_t clientID);
+    void RegisterPlayerEntity(uint32_t clientID, uint32_t entityID);
+    void BroadcastEntitySpawn(uint32_t entityID, uint32_t excludeClientID = 0);
+    void BroadcastEntityDespawn(uint32_t entityID, uint32_t excludeClientID = 0);
+
+    // Client-only functions
+    void SendInputToServer(const std::unordered_map<std::string, bool>& buttons);
+    uint32_t GetMyClientId();
+
 private:
     // Internal renderer reference (internal use only)
     Renderer* rendererRef = nullptr;
@@ -109,6 +139,12 @@ private:
     Timeline* timelineRef = nullptr;
     // Internal network manager reference (internal use only)
     NetworkManager* networkManagerRef = nullptr;
+    // Internal server input manager reference (server mode only)
+    ServerInputManager* serverInputManagerRef = nullptr;
+    // Internal server reference (server mode only)
+    Server* serverRef = nullptr;
+    // Current network mode
+    NetworkMode currentMode = NetworkMode::STANDALONE;
 };
 
 }

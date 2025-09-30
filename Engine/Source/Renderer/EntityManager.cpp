@@ -31,12 +31,15 @@ uint32_t EntityManager::AddEntity(const char* spritePath, float Xpos, float Ypos
 
     // Load texture and get dimensions
     TextureInfo textureInfo = LoadTexture(spritePath);
-    if (!textureInfo.texture) {
-        return 0; // Failed to load texture
+    // Check if loading failed (null texture AND zero dimensions)
+    // In headless mode, texture will be null but dimensions will be valid
+    if (!textureInfo.texture && textureInfo.width == 0.0f && textureInfo.height == 0.0f) {
+        return 0; // Failed to load texture/dimensions
     }
 
     Entity newEntity;
     newEntity.ID = nextEntityID++;
+    newEntity.spritePath = spritePath;  // Store for replication
     newEntity.spriteSheet = textureInfo.texture;
     newEntity.spriteWidth = textureInfo.width;
     newEntity.spriteHeight = textureInfo.height;
@@ -74,12 +77,15 @@ uint32_t EntityManager::AddAnimatedEntity(const char* spritePath, int totalFrame
 
     // Load texture and get dimensions
     TextureInfo textureInfo = LoadTexture(spritePath);
-    if (!textureInfo.texture) {
-        return 0; // Failed to load texture
+    // Check if loading failed (null texture AND zero dimensions)
+    // In headless mode, texture will be null but dimensions will be valid
+    if (!textureInfo.texture && textureInfo.width == 0.0f && textureInfo.height == 0.0f) {
+        return 0; // Failed to load texture/dimensions
     }
 
     Entity newEntity;
     newEntity.ID = nextEntityID++;
+    newEntity.spritePath = spritePath;  // Store for replication
     newEntity.spriteSheet = textureInfo.texture;
     newEntity.spriteWidth = textureInfo.width;
     newEntity.spriteHeight = textureInfo.height;
@@ -337,6 +343,28 @@ void EntityManager::UpdateIndexMap() {
 TextureInfo EntityManager::LoadTexture(const char* spritePath) {
     TextureInfo result = {nullptr, 0.0f, 0.0f};
 
+    // In headless mode, skip texture loading but still get dimensions
+    if (headlessMode) {
+        // Load image to get dimensions (needed for physics/collisions)
+        SDL_Surface *spriteSheet = IMG_Load(spritePath);
+
+        if (!spriteSheet) {
+            SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Failed to load image %s: %s", spritePath, SDL_GetError());
+            return result;
+        }
+
+        // Get dimensions from the surface
+        result.width = static_cast<float>(spriteSheet->w);
+        result.height = static_cast<float>(spriteSheet->h);
+        result.texture = nullptr;  // No texture in headless mode
+
+        // Free the image surface
+        SDL_DestroySurface(spriteSheet);
+
+        return result;
+    }
+
+    // Normal mode: require renderer
     if (!rendererRef) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Renderer not set in EntityManager");
         return result;

@@ -1,22 +1,20 @@
 #include "Client.h"
 #include <zmq/zmq.hpp>
-#include <string>
 #include <iostream>
 #include <sstream>
-#include <algorithm>
+#include <chrono>
 
 namespace RiverCore {
 
-// Global ZMQ context and sockets
+// Global ZMQ context and socket
 static zmq::context_t context(1);
-static zmq::socket_t* reqSocket = nullptr;
+static zmq::socket_t* clientSocket = nullptr;
 
 Client::Client() {
-    lastPositionUpdate = std::chrono::steady_clock::now();
+    lastUpdate = std::chrono::steady_clock::now();
 }
 
 Client::~Client() {
-    // Ensure proper cleanup
     Disconnect();
 }
 
@@ -31,12 +29,12 @@ bool Client::Connect(const std::string& serverAddress) {
     try {
         InitializeSockets(serverAddress);
 
-        // Perform connection handshake via REQ socket
-        std::string connectMsg = "CONNECT";
+        // Send connection request
+        std::string connectMsg = CreateMessage(MessageType::CONNECT, "");
         zmq::message_t request(connectMsg.size());
         memcpy(request.data(), connectMsg.data(), connectMsg.size());
 
-        if (!reqSocket->send(request, zmq::send_flags::none)) {
+        if (!clientSocket->send(request, zmq::send_flags::none)) {
             std::cout << "Failed to send CONNECT request\n";
             CleanupSockets();
             return false;
@@ -44,37 +42,39 @@ bool Client::Connect(const std::string& serverAddress) {
 
         // Wait for response
         zmq::message_t reply;
-        auto result = reqSocket->recv(reply, zmq::recv_flags::none);
+        auto result = clientSocket->recv(reply, zmq::recv_flags::none);
 
         if (result) {
             std::string response(static_cast<char*>(reply.data()), reply.size());
-            std::cout << "Server handshake response: " << response << "\n";
+            std::cout << "Server response: " << response << "\n";
 
             std::istringstream iss(response);
             std::string status;
-            iss >> status;
+            uint32_t assignedId;
 
-            if (status == "CONNECTED") {
-                uint32_t assignedId;
-                float startX, startY;
-                if (iss >> assignedId >> startX >> startY) {
-                    clientId = assignedId;
-                    currentX = startX;
-                    currentY = startY;
-                    connected = true;
+            if (iss >> status >> assignedId && status == "CONNECTED") {
+                clientId = assignedId;
+                connected = true;
 
-                    std::cout << "Connected successfully! Client ID: " << assignedId
-                              << ", Starting position: (" << startX << ", " << startY << ")\n";
+                std::cout << "Connected successfully! Client ID: " << assignedId << "\n";
 
-                    return true;
-                } else {
-                    std::cout << "Invalid CONNECTED response format\n";
-                }
+                // Close connection socket and reconnect to dedicated port
+                CleanupSockets();
+                std::string dedicatedAddress = serverAddress + ":" + std::to_string(5556 + assignedId);
+
+                clientSocket = new zmq::socket_t(context, zmq::socket_type::req);
+                clientSocket->connect("tcp://" + dedicatedAddress);
+
+                int timeout = 1000;
+                clientSocket->set(zmq::sockopt::rcvtimeo, timeout);
+                clientSocket->set(zmq::sockopt::sndtimeo, timeout);
+
+                return true;
             } else {
-                std::cout << "Connection failed: " << response << "\n";
+                std::cout << "Invalid response format: " << response << "\n";
             }
         } else {
-            std::cout << "No response from server during handshake\n";
+            std::cout << "No response from server\n";
         }
 
     } catch (const zmq::error_t& e) {
@@ -93,68 +93,26 @@ void Client::Disconnect() {
     }
 
     std::cout << "Disconnecting from server...\n";
-
-    // Signal update loop to stop
     disconnecting = true;
 
-    // Wait briefly for update loop to finish current operations
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-    // Send disconnect message to server
-    if (reqSocket && clientId.load() != 0) {
+    // Send disconnect message
+    if (clientSocket && clientId.load() != 0) {
         std::lock_guard<std::mutex> lock(socketMutex);
 
         try {
-            std::string disconnectMsg = "DISCONNECT " + std::to_string(clientId.load());
+            std::string disconnectMsg = CreateMessage(MessageType::DISCONNECT, "");
             zmq::message_t request(disconnectMsg.size());
             memcpy(request.data(), disconnectMsg.data(), disconnectMsg.size());
 
-            // Send disconnect with reliable synchronous operation
-            bool disconnectSent = false;
-            for (int attempt = 0; attempt < 3 && !disconnectSent; ++attempt) {
-                try {
-                    if (reqSocket->send(request, zmq::send_flags::none)) {
-                        // Wait for acknowledgment
-                        zmq::message_t reply;
-                        auto result = reqSocket->recv(reply, zmq::recv_flags::none);
-
-                        if (result) {
-                            std::string response(static_cast<char*>(reply.data()), reply.size());
-                            if (response == "DISCONNECTED") {
-                                std::cout << "Successfully sent disconnect message to server\n";
-                                disconnectSent = true;
-                            }
-                        }
-                    }
-                } catch (const zmq::error_t& e) {
-                    if (e.num() == EAGAIN && attempt < 2) {
-                        std::cout << "Disconnect attempt " << (attempt + 1) << " timed out, retrying...\n";
-                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                    } else {
-                        std::cout << "ZMQ error sending disconnect message: " << e.what() << "\n";
-                        break;
-                    }
-                }
-            }
-
-            if (!disconnectSent) {
-                std::cout << "Failed to send disconnect message after 3 attempts\n";
-            }
-
+            clientSocket->send(request, zmq::send_flags::none);
         } catch (const std::exception& e) {
-            std::cout << "Error sending disconnect message: " << e.what() << "\n";
+            std::cout << "Error sending disconnect: " << e.what() << "\n";
         }
     }
 
-    // Reset state
     connected = false;
     clientId = 0;
     disconnecting = false;
-
-    {
-        std::lock_guard<std::mutex> lock(otherClientsMutex);
-        otherClients.clear();
-    }
 
     CleanupSockets();
     std::cout << "Disconnected from server\n";
@@ -165,137 +123,152 @@ void Client::Update() {
         return;
     }
 
-    try {
-        // Send position updates and get game state at 60Hz
-        auto now = std::chrono::steady_clock::now();
-        auto timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastPositionUpdate);
+    auto now = std::chrono::steady_clock::now();
+    auto timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastUpdate);
 
-        if (timeSinceLastUpdate.count() >= POSITION_UPDATE_INTERVAL_MS) {
-            // Check again if we're disconnecting before socket operation
-            if (!disconnecting.load()) {
-                UpdateAndGetGameState();
-                lastPositionUpdate = now;
-            }
-        }
-
-    } catch (const std::exception& e) {
-        std::cout << "Error in client update: " << e.what() << "\n";
+    if (timeSinceLastUpdate.count() >= UPDATE_INTERVAL_MS) {
+        SendInputAndReceiveState();
+        lastUpdate = now;
     }
 }
 
-void Client::SendPosition(float x, float y) {
+void Client::SendInput(const std::unordered_map<std::string, bool>& buttons,
+                       const std::unordered_map<std::string, float>& axes) {
     if (!connected.load()) {
         return;
     }
 
-    // Only mark as dirty if position actually changed
-    if (currentX.load() != x || currentY.load() != y) {
-        currentX = x;
-        currentY = y;
-        positionDirty = true;
-    }
+    std::lock_guard<std::mutex> lock(inputMutex);
+    pendingInput.clientID = clientId.load();
+    pendingInput.buttons = buttons;
+    pendingInput.axes = axes;
+    pendingInput.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
-std::unordered_map<uint32_t, OtherClientData> Client::GetOtherClients() const {
-    std::lock_guard<std::mutex> lock(otherClientsMutex);
-    return otherClients; // Return copy for thread safety
+GameStateSnapshot Client::GetLatestGameState() {
+    std::lock_guard<std::mutex> lock(stateMutex);
+    return latestState;
+}
+
+std::vector<EntitySpawnInfo> Client::GetPendingSpawns() {
+    std::lock_guard<std::mutex> lock(pendingMessagesMutex);
+    std::vector<EntitySpawnInfo> spawns = std::move(pendingSpawns);
+    pendingSpawns.clear();
+    return spawns;
+}
+
+std::vector<uint32_t> Client::GetPendingDespawns() {
+    std::lock_guard<std::mutex> lock(pendingMessagesMutex);
+    std::vector<uint32_t> despawns = std::move(pendingDespawns);
+    pendingDespawns.clear();
+    return despawns;
 }
 
 void Client::InitializeSockets(const std::string& serverAddress) {
     try {
-        // Create REQ socket for all client-server communication
-        reqSocket = new zmq::socket_t(context, zmq::socket_type::req);
-        std::string reqAddress = "tcp://" + serverAddress + ":5555";
-        reqSocket->connect(reqAddress);
+        clientSocket = new zmq::socket_t(context, zmq::socket_type::req);
+        std::string address = "tcp://" + serverAddress + ":5555";
+        clientSocket->connect(address);
 
-        // Set shorter timeout for 60Hz operation
-        int timeout = 1000; // 1 second
-        reqSocket->set(zmq::sockopt::rcvtimeo, timeout);
-        reqSocket->set(zmq::sockopt::sndtimeo, timeout);
+        int timeout = 5000;
+        clientSocket->set(zmq::sockopt::rcvtimeo, timeout);
+        clientSocket->set(zmq::sockopt::sndtimeo, timeout);
 
     } catch (const zmq::error_t& e) {
         CleanupSockets();
-        throw std::runtime_error("Failed to initialize client sockets: " + std::string(e.what()));
+        throw std::runtime_error("Failed to initialize client socket: " + std::string(e.what()));
     }
 }
 
 void Client::CleanupSockets() {
-    if (reqSocket) {
+    if (clientSocket) {
         try {
-            reqSocket->close();
-            delete reqSocket;
-            reqSocket = nullptr;
+            clientSocket->close();
+            delete clientSocket;
+            clientSocket = nullptr;
         } catch (const std::exception& e) {
-            std::cout << "Error closing REQ socket: " << e.what() << "\n";
+            std::cout << "Error closing client socket: " << e.what() << "\n";
         }
     }
 }
 
-void Client::UpdateAndGetGameState() {
-    if (!reqSocket || !connected.load() || disconnecting.load()) {
+void Client::SendInputAndReceiveState() {
+    if (!clientSocket || !connected.load() || disconnecting.load()) {
         return;
     }
 
     std::lock_guard<std::mutex> lock(socketMutex);
 
-    // Double-check after acquiring lock
-    if (!reqSocket || !connected.load() || disconnecting.load()) {
-        return;
-    }
-
     try {
-        // Create combined position update and game state request
-        std::ostringstream oss;
-        oss << "UPDATE_AND_GET_STATE " << clientId.load() << " " << currentX.load() << " " << currentY.load();
-        std::string requestMsg = oss.str();
+        // Get pending input
+        InputState inputToSend;
+        {
+            std::lock_guard<std::mutex> inputLock(inputMutex);
+            inputToSend = pendingInput;
+        }
 
-        // Send request
-        zmq::message_t request(requestMsg.size());
-        memcpy(request.data(), requestMsg.data(), requestMsg.size());
+        // Send input to server
+        std::string inputMsg = CreateMessage(MessageType::INPUT, inputToSend.Serialize());
+        zmq::message_t request(inputMsg.size());
+        memcpy(request.data(), inputMsg.data(), inputMsg.size());
 
-        if (reqSocket->send(request, zmq::send_flags::none)) {
-            // Wait for response
+        if (clientSocket->send(request, zmq::send_flags::none)) {
+            // Receive game state response
             zmq::message_t reply;
-            auto result = reqSocket->recv(reply, zmq::recv_flags::none);
+            auto result = clientSocket->recv(reply, zmq::recv_flags::none);
 
             if (result) {
                 std::string response(static_cast<char*>(reply.data()), reply.size());
-                ParseGameStateResponse(response);
+
+                // Server sends multiple messages separated by newlines
+                std::istringstream responseStream(response);
+                std::string line;
+
+                while (std::getline(responseStream, line)) {
+                    if (line.empty()) continue;
+
+                    MessageType msgType;
+                    std::string payload;
+                    if (ParseMessage(line, msgType, payload)) {
+                        if (msgType == MessageType::SPAWN_ENTITY) {
+                            // Parse and queue entity spawn
+                            EntitySpawnInfo spawnInfo = EntitySpawnInfo::Deserialize(payload);
+                            {
+                                std::lock_guard<std::mutex> msgLock(pendingMessagesMutex);
+                                pendingSpawns.push_back(spawnInfo);
+                            }
+                        }
+                        else if (msgType == MessageType::DESPAWN_ENTITY) {
+                            // Parse and queue entity despawn
+                            uint32_t entityID = std::stoul(payload);
+                            {
+                                std::lock_guard<std::mutex> msgLock(pendingMessagesMutex);
+                                pendingDespawns.push_back(entityID);
+                            }
+                        }
+                        else if (msgType == MessageType::GAME_STATE) {
+                            // Parse game state
+                            GameStateSnapshot newState = GameStateSnapshot::Deserialize(payload);
+
+                            // Update latest state
+                            {
+                                std::lock_guard<std::mutex> stateLock(stateMutex);
+                                latestState = newState;
+                            }
+                        }
+                    }
+                }
             }
         }
 
     } catch (const zmq::error_t& e) {
         if (e.num() != ETERM) {
-            std::cout << "ZMQ error in update and get state: " << e.what() << "\n";
+            std::cout << "ZMQ error in send/receive: " << e.what() << "\n";
         }
     } catch (const std::exception& e) {
-        std::cout << "Error in update and get state: " << e.what() << "\n";
+        std::cout << "Error in send/receive: " << e.what() << "\n";
     }
 }
-
-void Client::ParseGameStateResponse(const std::string& response) {
-    std::istringstream iss(response);
-    std::string status;
-    iss >> status;
-
-    if (status != "OK") {
-        std::cout << "Unexpected server response: " << response << "\n";
-        return;
-    }
-
-    // Parse game state
-    std::lock_guard<std::mutex> lock(otherClientsMutex);
-    otherClients.clear();
-
-    uint32_t clientId;
-    float x, y;
-    while (iss >> clientId >> x >> y) {
-        // Don't track ourselves
-        if (clientId != this->clientId.load()) {
-            otherClients[clientId] = OtherClientData(x, y);
-        }
-    }
-}
-
 
 }

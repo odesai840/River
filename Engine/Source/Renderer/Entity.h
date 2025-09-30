@@ -4,6 +4,7 @@
 #include "Math/Math.h"
 #include "SDL3/SDL_render.h"
 #include <vector>
+#include <string>
 
 namespace RiverCore {
 
@@ -42,6 +43,7 @@ private:
 // Data-only struct that defines variables for entities
 struct Entity {
     uint32_t ID = 0;                   // Internal identifier (default 0 for invalid entity)
+    std::string spritePath;            // Path to sprite file (for replication)
     SDL_Texture* spriteSheet;          // Spritesheet to use for the entity sprite
     float spriteWidth;                 // Width of sprite frame(s)
     float spriteHeight;                // Height of sprite frame(s)

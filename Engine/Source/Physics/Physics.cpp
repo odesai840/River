@@ -93,29 +93,56 @@ void Physics::UpdateCollisions(std::vector<Entity>& entities) {
 
                 // Only resolve position if both entities are SOLID colliders
                 if (entityA.collider.type == ColliderType::SOLID &&
-                    entityB.collider.type == ColliderType::SOLID &&
-                    entityA.physApplied && !entityB.physApplied) { // A is dynamic, B is static
+                    entityB.collider.type == ColliderType::SOLID) {
+
+                    // Calculate overlap
                     float overlapX = std::min(ax2, bx2) - std::max(ax1, bx1);
                     float overlapY = std::min(ay2, by2) - std::max(ay1, by1);
 
-                    // Resolve collision by moving A out of B along the smallest overlap
-                    if (overlapX < overlapY) {
-                        // Horizontal separation
-                        if (entityA.position.x < entityB.position.x) {
-                            entityA.position.x = bx1 - (aWidth / 2.0f); // Push left
-                            entityA.velocity.x = std::min(0.0f, entityA.velocity.x);
+                    // Case 1: A is dynamic, B is static
+                    if (entityA.physApplied && !entityB.physApplied) {
+                        // Resolve collision by moving A out of B along the smallest overlap
+                        if (overlapX < overlapY) {
+                            // Horizontal separation
+                            if (entityA.position.x < entityB.position.x) {
+                                entityA.position.x = bx1 - (aWidth / 2.0f); // Push left
+                                entityA.velocity.x = std::min(0.0f, entityA.velocity.x);
+                            } else {
+                                entityA.position.x = bx2 + (aWidth / 2.0f); // Push right
+                                entityA.velocity.x = std::max(0.0f, entityA.velocity.x);
+                            }
                         } else {
-                            entityA.position.x = bx2 + (aWidth / 2.0f); // Push right
-                            entityA.velocity.x = std::max(0.0f, entityA.velocity.x);
+                            // Vertical separation
+                            if (entityA.position.y < entityB.position.y) {
+                                entityA.position.y = by1 - (aHeight / 2.0f); // Push up (A above B)
+                                entityA.velocity.y = std::min(0.0f, entityA.velocity.y);
+                            } else {
+                                entityA.position.y = by2 + (aHeight / 2.0f); // Push down (A below B)
+                                entityA.velocity.y = std::max(0.0f, entityA.velocity.y);
+                            }
                         }
-                    } else {
-                        // Vertical separation
-                        if (entityA.position.y < entityB.position.y) {
-                            entityA.position.y = by1 - (aHeight / 2.0f); // Push up (A above B)
-                            entityA.velocity.y = std::min(0.0f, entityA.velocity.y);
+                    }
+                    // Case 2: A is static, B is dynamic
+                    else if (!entityA.physApplied && entityB.physApplied) {
+                        // Resolve collision by moving B out of A along the smallest overlap
+                        if (overlapX < overlapY) {
+                            // Horizontal separation
+                            if (entityB.position.x < entityA.position.x) {
+                                entityB.position.x = ax1 - (bWidth / 2.0f); // Push left
+                                entityB.velocity.x = std::min(0.0f, entityB.velocity.x);
+                            } else {
+                                entityB.position.x = ax2 + (bWidth / 2.0f); // Push right
+                                entityB.velocity.x = std::max(0.0f, entityB.velocity.x);
+                            }
                         } else {
-                            entityA.position.y = by2 + (aHeight / 2.0f); // Push down (A below B)
-                            entityA.velocity.y = std::max(0.0f, entityA.velocity.y);
+                            // Vertical separation
+                            if (entityB.position.y < entityA.position.y) {
+                                entityB.position.y = ay1 - (bHeight / 2.0f); // Push up (B above A)
+                                entityB.velocity.y = std::min(0.0f, entityB.velocity.y);
+                            } else {
+                                entityB.position.y = ay2 + (bHeight / 2.0f); // Push down (B below A)
+                                entityB.velocity.y = std::max(0.0f, entityB.velocity.y);
+                            }
                         }
                     }
                 }

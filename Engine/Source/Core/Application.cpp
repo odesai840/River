@@ -124,15 +124,19 @@ void Application::Run(GameInterface* game) {
     // Initialize engine systems
     Init();
 
+    // Set mode
+    currentMode = NetworkMode::STANDALONE;
+
     // Initialize game interface reference
     gameRef = game;
-    
+
     // Set up game references
     game->SetPhysicsRef(&physics);
     game->SetRenderer(&renderer);
     game->SetInput(&input);
     game->SetEntityManager(&entityManager);
     game->SetTimeline(&timeline);
+    game->SetMode(NetworkMode::STANDALONE);
 
     // Run game start method
     game->OnStart();
@@ -181,22 +185,98 @@ void Application::Run(GameInterface* game) {
     SDL_Quit();
 }
 
-void Application::RunServer() {
+void Application::RunServer(GameInterface* game, bool headless) {
+    if (!game) {
+        std::cout << "Error: Cannot start server without game logic\n";
+        return;
+    }
+
+    currentMode = NetworkMode::SERVER;
+
+    if (!headless) {
+        // Listen-server mode with rendering
+        Init();
+    }
+
+    std::cout << "Starting server in " << (headless ? "headless" : "listen-server") << " mode...\n";
+
     // Initialize server
     Server server;
-    server.Start();
 
-    std::cout << "Headless server started successfully. Press Ctrl+C to stop.\n";
+    // Set up game references to server's systems
+    game->SetEntityManager(&server.GetEntityManager());
+    game->SetPhysicsRef(&server.GetPhysics());
+    game->SetTimeline(&server.GetTimeline());
+    game->SetInputManager(&server.GetInputManager());
+    game->SetMode(NetworkMode::SERVER);
+    game->SetServerRef(&server);
 
-    // Keep server running until interrupted
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // Enable headless mode for server's entity manager
+    server.GetEntityManager().SetHeadlessMode(true);
+
+    // Initialize game logic
+    game->OnStart();
+
+    std::cout << "Game initialized, starting server...\n";
+
+    // Start server (blocks in simulation loop)
+    std::thread serverThread([&server, game]() {
+        server.Start(game);
+    });
+
+    if (!headless) {
+        // Listen-server with local rendering
+        gameRef = game;
+        game->SetRenderer(&renderer);
+
+        // Start render thread
+        renderThread = std::thread(&Application::RenderThreadFunction, this);
+
+        // Main event loop
+        bool done = false;
+        while (!done && running) {
+            SDL_Event event;
+            while (SDL_PollEvent(&event)) {
+                if (event.type == SDL_EVENT_QUIT) {
+                    done = true;
+                }
+            }
+
+            SDL_PumpEvents();
+
+            // Signal render thread
+            {
+                std::lock_guard<std::mutex> lock(renderMutex);
+                renderReady = true;
+            }
+            renderCondition.notify_one();
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        }
+
+        running = false;
+        renderCondition.notify_all();
+
+        if (renderThread.joinable()) {
+            renderThread.join();
+        }
+
+        SDL_DestroyRenderer(renderer.GetRenderer());
+        SDL_DestroyWindow(window.GetNativeWindow());
+        SDL_Quit();
+    } else {
+        // Headless server - just wait
+        std::cout << "Headless server running. Press Ctrl+C to stop.\n";
+        serverThread.join();
     }
 }
 
 void Application::RunClient(const std::string& serverAddress, GameInterface* game) {
     // Initialize engine systems
     Init();
+
+    // Set mode
+    currentMode = NetworkMode::CLIENT;
 
     // Initialize game interface reference
     gameRef = game;
@@ -207,6 +287,7 @@ void Application::RunClient(const std::string& serverAddress, GameInterface* gam
     game->SetInput(&input);
     game->SetEntityManager(&entityManager);
     game->SetTimeline(&timeline);
+    game->SetMode(NetworkMode::CLIENT);
 
     // Initialize NetworkManager and connect to server
     networkManager.SetEntityManager(&entityManager);

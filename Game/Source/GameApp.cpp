@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
         if (arg1 == "--server") {
             // Run as dedicated server
             std::cout << "Starting River server...\n";
-            app.RunServer();
+            app.RunServer(&mainBehavior);
             return 0;
         }
         else if (arg1 == "--client") {

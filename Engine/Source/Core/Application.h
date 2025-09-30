@@ -3,6 +3,7 @@
 
 #include "Window.h"
 #include "GameInterface.h"
+#include "NetworkMode.h"
 #include "Renderer/Renderer.h"
 #include "Input/Input.h"
 #include "Physics/Physics.h"
@@ -23,10 +24,10 @@ public:
 
     // Initializes engine resources
     void Init();
-    // Starts the core application loop
+    // Starts the core application loop (standalone mode)
     void Run(GameInterface* game);
-    // Starts the server loop (headless)
-    void RunServer();
+    // Starts the server loop
+    void RunServer(GameInterface* game, bool headless = true);
     // Starts the client loop with server connection
     void RunClient(const std::string& serverAddress, GameInterface* game);
 
@@ -48,6 +49,9 @@ private:
     Timeline timeline;
     // Network manager for client networking
     NetworkManager networkManager;
+
+    // Current network mode
+    NetworkMode currentMode = NetworkMode::STANDALONE;
 
     // Game interface reference for thread access
     GameInterface* gameRef = nullptr;

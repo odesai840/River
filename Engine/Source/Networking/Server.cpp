@@ -1,44 +1,49 @@
 #include "Server.h"
+#include "Core/GameInterface.h"
 #include <zmq/zmq.hpp>
 #include <iostream>
-#include <string>
-#include <thread>
 #include <sstream>
-#include <vector>
-#include <algorithm>
+#include <chrono>
+#include <thread>
 
 namespace RiverCore {
 
-// Global ZMQ context and sockets
+// Global ZMQ context
 static zmq::context_t context(1);
-static zmq::socket_t* repSocket = nullptr;
+static zmq::socket_t* acceptSocket = nullptr;
 
 Server::Server() {
-    
 }
 
 Server::~Server() {
-    // Ensure proper cleanup
     Stop();
 }
 
-void Server::Start() {
+void Server::Start(GameInterface* gameLogic) {
     if (running.load()) {
         std::cout << "Server is already running\n";
         return;
     }
 
+    if (!gameLogic) {
+        std::cout << "Error: Cannot start server without game logic instance\n";
+        return;
+    }
+
+    this->gameLogic = gameLogic;
+    running = true;
+
     std::cout << "Starting server...\n";
 
     try {
         InitializeSockets();
-        running = true;
 
-        // Start connection processing thread
-        std::thread connectionThread(&Server::ProcessConnectionRequests, this);
+        // Start connection listener thread
+        std::thread listener(&Server::ConnectionListenerThread, this);
+        listener.detach();
 
-        // Wait for thread to complete
-        connectionThread.join();
+        // Run simulation loop in main thread
+        SimulationLoop();
 
     } catch (const std::exception& e) {
         std::cout << "Failed to start server: " << e.what() << "\n";
@@ -55,8 +60,27 @@ void Server::Stop() {
     std::cout << "Stopping server...\n";
     running = false;
 
-    // Give threads time to finish their current operations
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // Signal all client threads to stop
+    {
+        std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+        for (auto& conn : clientConnections) {
+            conn->active = false;
+        }
+    }
+
+    // Give threads time to finish
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    // Join all client threads
+    {
+        std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+        for (auto& conn : clientConnections) {
+            if (conn->thread.joinable()) {
+                conn->thread.join();
+            }
+        }
+        clientConnections.clear();
+    }
 
     CleanupSockets();
     std::cout << "Server stopped successfully\n";
@@ -64,13 +88,11 @@ void Server::Stop() {
 
 void Server::InitializeSockets() {
     try {
-        // Create REP socket for all client-server communication
-        repSocket = new zmq::socket_t(context, zmq::socket_type::rep);
-        repSocket->bind("tcp://*:5555");
+        acceptSocket = new zmq::socket_t(context, zmq::socket_type::rep);
+        acceptSocket->bind("tcp://*:5555");
 
-        // Set shorter timeout for responsive 60Hz operation
         int timeout = 100;
-        repSocket->set(zmq::sockopt::rcvtimeo, timeout);
+        acceptSocket->set(zmq::sockopt::rcvtimeo, timeout);
 
     } catch (const zmq::error_t& e) {
         CleanupSockets();
@@ -79,142 +101,404 @@ void Server::InitializeSockets() {
 }
 
 void Server::CleanupSockets() {
-    if (repSocket) {
+    if (acceptSocket) {
         try {
-            repSocket->close();
-            delete repSocket;
-            repSocket = nullptr;
+            acceptSocket->close();
+            delete acceptSocket;
+            acceptSocket = nullptr;
         } catch (const std::exception& e) {
-            std::cout << "Error closing REP socket: " << e.what() << "\n";
+            std::cout << "Error closing accept socket: " << e.what() << "\n";
         }
     }
 }
 
-void Server::ProcessConnectionRequests() {
-    std::cout << "Server started successfully. Listening on port 5555\n";
+void Server::ConnectionListenerThread() {
+    std::cout << "Connection listener started on port 5555\n";
 
     while (running.load()) {
         try {
-            if (!repSocket) {
-                std::cout << "REP socket is null, exiting connection handler\n";
+            if (!acceptSocket) {
                 break;
             }
 
-            // Non-blocking receive for connection requests
+            // Listen for new connection requests
             zmq::message_t request;
-            auto result = repSocket->recv(request, zmq::recv_flags::dontwait);
+            auto result = acceptSocket->recv(request, zmq::recv_flags::dontwait);
 
             if (result) {
                 std::string requestStr(static_cast<char*>(request.data()), request.size());
 
-                std::istringstream iss(requestStr);
-                std::string command;
-                iss >> command;
-
-                std::string response;
-                if (command == "CONNECT") {
-                    std::cout << "Received connection request: " << requestStr << "\n";
-                    uint32_t newClientId = HandleConnect();
-                    response = "CONNECTED " + std::to_string(newClientId) + " 0.0 0.0";
-                    std::cout << "Sent connection response: " << response << "\n";
-                } else if (command == "DISCONNECT") {
-                    std::cout << "Received disconnect request: " << requestStr << "\n";
-                    uint32_t clientId;
-                    if (iss >> clientId) {
-                        HandleDisconnect(clientId);
-                        response = "DISCONNECTED";
-                    } else {
-                        response = "ERROR Invalid disconnect format";
-                    }
-                    std::cout << "Sent disconnect response: " << response << "\n";
-                } else if (command == "UPDATE_AND_GET_STATE") {
-                    uint32_t clientId;
-                    float x, y;
-                    if (iss >> clientId >> x >> y) {
-                        UpdateClientPosition(clientId, x, y);
-                        response = GetGameStateResponse();
-                    } else {
-                        response = "ERROR Invalid update format";
-                    }
-                } else {
-                    std::cout << "Received unknown request: " << requestStr << "\n";
-                    response = "ERROR Unknown command: " + command;
-                    std::cout << "Sent error response: " << response << "\n";
+                MessageType msgType;
+                std::string payload;
+                if (!ParseMessage(requestStr, msgType, payload)) {
+                    std::cout << "Failed to parse message: " << requestStr << "\n";
+                    continue;
                 }
 
-                // Send response back to client
-                zmq::message_t reply(response.size());
-                memcpy(reply.data(), response.data(), response.size());
-                repSocket->send(reply, zmq::send_flags::none);
+                if (msgType == MessageType::CONNECT) {
+                    // Handle new client connection
+                    uint32_t newClientID = HandleConnect(acceptSocket);
+
+                    std::ostringstream oss;
+                    oss << "CONNECTED " << newClientID;
+                    std::string response = oss.str();
+
+                    zmq::message_t reply(response.size());
+                    memcpy(reply.data(), response.data(), response.size());
+                    acceptSocket->send(reply, zmq::send_flags::none);
+
+                    std::cout << "Client " << newClientID << " connected\n";
+                }
             }
 
-            // Small sleep to prevent busy waiting
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
         } catch (const zmq::error_t& e) {
-            if (e.num() != ETERM) {
-                std::cout << "ZMQ error in connection handler: " << e.what() << "\n";
+            if (e.num() != ETERM && running.load()) {
+                std::cout << "ZMQ error in connection listener: " << e.what() << "\n";
             }
         } catch (const std::exception& e) {
-            std::cout << "Error in connection handler: " << e.what() << "\n";
+            std::cout << "Error in connection listener: " << e.what() << "\n";
         }
     }
 
-    std::cout << "Connection handler stopped\n";
+    std::cout << "Connection listener stopped\n";
 }
 
+uint32_t Server::HandleConnect(void* socket) {
+    uint32_t clientID = nextClientID.fetch_add(1);
 
-uint32_t Server::HandleConnect() {
-    uint32_t newClientId = nextClientID.fetch_add(1);
+    // Create dedicated socket for this client
+    zmq::socket_t* clientSocket = new zmq::socket_t(context, zmq::socket_type::rep);
+    std::string address = "tcp://*:" + std::to_string(5556 + clientID);
+    clientSocket->bind(address);
+
+    int timeout = 100;
+    clientSocket->set(zmq::sockopt::rcvtimeo, timeout);
+
+    // Spawn client thread
+    auto conn = std::make_unique<ClientConnection>();
+    conn->clientID = clientID;
+    conn->active = true;
+    conn->thread = std::thread(&Server::ClientThread, this, clientID, clientSocket);
 
     {
-        std::lock_guard<std::mutex> lock(clientDataMutex);
-        clientData[newClientId] = ClientData(0.0f, 0.0f);
+        std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+        clientConnections.push_back(std::move(conn));
     }
 
-    std::cout << "Client " << newClientId << " connected. Total clients: " << clientData.size() << "\n";
+    // Send current world state to new client (queue all existing entities)
+    SendWorldStateToClient(clientID, clientSocket);
 
-    return newClientId;
+    // Notify game logic (spawn player and broadcast to all clients)
+    if (gameLogic) {
+        gameLogic->OnClientConnected(clientID);
+    }
+
+    return clientID;
 }
 
-void Server::HandleDisconnect(uint32_t clientId) {
+void Server::HandleDisconnect(uint32_t clientID) {
+    // Remove player entity
     {
-        std::lock_guard<std::mutex> lock(clientDataMutex);
-        auto it = clientData.find(clientId);
-        if (it != clientData.end()) {
-            clientData.erase(it);
-            std::cout << "Client " << clientId << " disconnected. Total clients: " << clientData.size() << "\n";
+        std::lock_guard<std::mutex> lock(clientPlayerMutex);
+        auto it = clientPlayerMap.find(clientID);
+        if (it != clientPlayerMap.end()) {
+            uint32_t entityID = it->second;
+            serverEntityManager.RemoveEntity(entityID);
+            clientPlayerMap.erase(it);
         }
     }
+
+    // Notify game logic
+    if (gameLogic) {
+        gameLogic->OnClientDisconnected(clientID);
+    }
+
+    std::cout << "Client " << clientID << " disconnected\n";
 }
 
-void Server::UpdateClientPosition(uint32_t clientId, float x, float y) {
-    std::lock_guard<std::mutex> lock(clientDataMutex);
-    auto it = clientData.find(clientId);
-    if (it != clientData.end()) {
-        // Only update if position actually changed
-        if (it->second.x != x || it->second.y != y) {
-            it->second.x = x;
-            it->second.y = y;
-            it->second.lastUpdate = std::chrono::steady_clock::now();
+void Server::ClientThread(uint32_t clientID, void* socketPtr) {
+    zmq::socket_t* clientSocket = static_cast<zmq::socket_t*>(socketPtr);
+    std::cout << "Client thread started for client " << clientID << "\n";
+
+    // Find this client's connection
+    ClientConnection* conn = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+        for (auto& c : clientConnections) {
+            if (c->clientID == clientID) {
+                conn = c.get();
+                break;
+            }
         }
     }
-}
 
-void Server::RemoveClient(uint32_t clientId) {
-    HandleDisconnect(clientId);
-}
+    while (running.load() && conn && conn->active.load()) {
+        try {
+            // Receive input from client
+            zmq::message_t request;
+            auto result = clientSocket->recv(request, zmq::recv_flags::dontwait);
 
-std::string Server::GetGameStateResponse() {
-    std::ostringstream oss;
-    oss << "OK";
+            if (result) {
+                std::string requestStr(static_cast<char*>(request.data()), request.size());
 
-    std::lock_guard<std::mutex> lock(clientDataMutex);
-    for (const auto& [clientId, data] : clientData) {
-        oss << " " << clientId << " " << data.x << " " << data.y;
+                MessageType msgType;
+                std::string payload;
+                if (ParseMessage(requestStr, msgType, payload)) {
+                    if (msgType == MessageType::INPUT) {
+                        // Parse and queue input
+                        InputState input = InputState::Deserialize(payload);
+                        input.clientID = clientID;
+                        inputManager.QueueInput(input);
+                    } else if (msgType == MessageType::DISCONNECT) {
+                        HandleDisconnect(clientID);
+                        conn->active = false;
+                        break;
+                    }
+                }
+
+                // Build response with queued messages and game state
+                std::ostringstream response;
+
+                // Get and send queued spawn/despawn messages
+                {
+                    std::lock_guard<std::mutex> queueLock(conn->queueMutex);
+
+                    // Send spawn messages
+                    for (const auto& spawnInfo : conn->spawnQueue) {
+                        response << CreateMessage(MessageType::SPAWN_ENTITY, spawnInfo.Serialize()) << "\n";
+                    }
+                    conn->spawnQueue.clear();
+
+                    // Send despawn messages
+                    for (uint32_t entityID : conn->despawnQueue) {
+                        response << CreateMessage(MessageType::DESPAWN_ENTITY, std::to_string(entityID)) << "\n";
+                    }
+                    conn->despawnQueue.clear();
+                }
+
+                // Send latest game state
+                GameStateSnapshot latestState;
+                {
+                    std::lock_guard<std::mutex> lock(stateQueueMutex);
+                    if (!stateQueue.empty()) {
+                        latestState = stateQueue.back().snapshot;
+                    }
+                }
+
+                response << CreateMessage(MessageType::GAME_STATE, latestState.Serialize());
+
+                std::string responseStr = response.str();
+                zmq::message_t reply(responseStr.size());
+                memcpy(reply.data(), responseStr.data(), responseStr.size());
+                clientSocket->send(reply, zmq::send_flags::none);
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+
+        } catch (const zmq::error_t& e) {
+            if (e.num() != ETERM && conn->active.load()) {
+                std::cout << "ZMQ error in client thread " << clientID << ": " << e.what() << "\n";
+            }
+        } catch (const std::exception& e) {
+            std::cout << "Error in client thread " << clientID << ": " << e.what() << "\n";
+        }
     }
 
-    return oss.str();
+    // Cleanup
+    try {
+        clientSocket->close();
+        delete clientSocket;
+    } catch (const std::exception& e) {
+        std::cout << "Error closing client socket: " << e.what() << "\n";
+    }
+
+    std::cout << "Client thread stopped for client " << clientID << "\n";
+}
+
+void Server::SimulationLoop() {
+    std::cout << "Server simulation loop started\n";
+
+    auto lastTime = std::chrono::high_resolution_clock::now();
+    float accumulator = 0.0f;
+
+    while (running.load()) {
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
+        lastTime = currentTime;
+
+        accumulator += deltaTime;
+
+        // Fixed timestep updates
+        while (accumulator >= FIXED_TIMESTEP) {
+            // Apply timeline scaling
+            float effectiveTimestep = serverTimeline.CalculateEffectiveTime(FIXED_TIMESTEP);
+
+            // Update physics
+            serverEntityManager.UpdatePhysics([this, effectiveTimestep](std::vector<Entity>& entities) {
+                serverPhysics.UpdatePhysics(entities, effectiveTimestep);
+            });
+
+            // Update animations
+            serverEntityManager.UpdateAnimations(effectiveTimestep);
+
+            // Call game logic
+            if (gameLogic) {
+                gameLogic->OnUpdate(effectiveTimestep);
+            }
+
+            // Capture game state
+            GameStateSnapshot snapshot = CaptureGameState();
+            snapshot.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+                currentTime.time_since_epoch()).count();
+
+            // Push to state queue
+            {
+                std::lock_guard<std::mutex> lock(stateQueueMutex);
+                GameStatePacket packet;
+                packet.snapshot = snapshot;
+                packet.timestamp = currentTime;
+                stateQueue.push(packet);
+
+                // Keep only latest 5 states
+                while (stateQueue.size() > 5) {
+                    stateQueue.pop();
+                }
+            }
+
+            accumulator -= FIXED_TIMESTEP;
+        }
+
+        // Sleep to maintain ~60Hz
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+    }
+
+    std::cout << "Server simulation loop stopped\n";
+}
+
+GameStateSnapshot Server::CaptureGameState() {
+    GameStateSnapshot snapshot;
+
+    // Get all entities from server's entity manager
+    std::vector<Entity> entities = serverEntityManager.GetEntitiesCopy();
+
+    for (const Entity& entity : entities) {
+        EntitySnapshot entitySnap;
+        entitySnap.entityID = entity.ID;
+        entitySnap.position = entity.position;
+        entitySnap.velocity = entity.velocity;
+        entitySnap.scale = entity.scale;
+        entitySnap.rotation = entity.rotation;
+        entitySnap.flipX = entity.flipX;
+        entitySnap.flipY = entity.flipY;
+        entitySnap.currentFrame = entity.currentFrame;
+
+        snapshot.entities.push_back(entitySnap);
+    }
+
+    // Add player bindings
+    {
+        std::lock_guard<std::mutex> lock(clientPlayerMutex);
+        snapshot.playerEntityBindings = clientPlayerMap;
+    }
+
+    return snapshot;
+}
+
+void Server::RegisterPlayerEntity(uint32_t clientID, uint32_t entityID) {
+    std::lock_guard<std::mutex> lock(clientPlayerMutex);
+    clientPlayerMap[clientID] = entityID;
+    std::cout << "Registered player entity " << entityID << " for client " << clientID << "\n";
+}
+
+void Server::UnregisterPlayerEntity(uint32_t clientID) {
+    std::lock_guard<std::mutex> lock(clientPlayerMutex);
+    auto it = clientPlayerMap.find(clientID);
+    if (it != clientPlayerMap.end()) {
+        std::cout << "Unregistered player entity " << it->second << " for client " << clientID << "\n";
+        clientPlayerMap.erase(it);
+    }
+}
+
+std::vector<uint32_t> Server::GetConnectedClients() const {
+    std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+    std::vector<uint32_t> clients;
+    for (const auto& conn : clientConnections) {
+        if (conn->active.load()) {
+            clients.push_back(conn->clientID);
+        }
+    }
+    return clients;
+}
+
+uint32_t Server::GetPlayerEntityForClient(uint32_t clientID) const {
+    std::lock_guard<std::mutex> lock(clientPlayerMutex);
+    auto it = clientPlayerMap.find(clientID);
+    if (it != clientPlayerMap.end()) {
+        return it->second;
+    }
+    return 0;
+}
+
+void Server::BroadcastEntitySpawn(const EntitySpawnInfo& spawnInfo, uint32_t excludeClientID) {
+    std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+
+    for (auto& conn : clientConnections) {
+        if (conn->active.load() && conn->clientID != excludeClientID) {
+            std::lock_guard<std::mutex> queueLock(conn->queueMutex);
+            conn->spawnQueue.push_back(spawnInfo);
+        }
+    }
+
+    std::cout << "Broadcasted entity spawn (ID: " << spawnInfo.entityID << ") to "
+              << clientConnections.size() << " clients\n";
+}
+
+void Server::BroadcastEntityDespawn(uint32_t entityID, uint32_t excludeClientID) {
+    std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+
+    for (auto& conn : clientConnections) {
+        if (conn->active.load() && conn->clientID != excludeClientID) {
+            std::lock_guard<std::mutex> queueLock(conn->queueMutex);
+            conn->despawnQueue.push_back(entityID);
+        }
+    }
+
+    std::cout << "Broadcasted entity despawn (ID: " << entityID << ") to "
+              << clientConnections.size() << " clients\n";
+}
+
+void Server::SendWorldStateToClient(uint32_t clientID, void* clientSocket) {
+    // Get all entities from entity manager
+    std::vector<Entity> entities = serverEntityManager.GetEntitiesCopy();
+
+    std::cout << "Sending world state to client " << clientID
+              << " (" << entities.size() << " entities)\n";
+
+    // For each entity, create a spawn message and queue it
+    for (const Entity& entity : entities) {
+        EntitySpawnInfo spawnInfo;
+        spawnInfo.entityID = entity.ID;
+        spawnInfo.spritePath = entity.spritePath;
+        spawnInfo.totalFrames = entity.totalFrames;
+        spawnInfo.fps = entity.fps;
+        spawnInfo.position = entity.position;
+        spawnInfo.scale = entity.scale;
+        spawnInfo.rotation = entity.rotation;
+        spawnInfo.physEnabled = entity.physApplied;
+        spawnInfo.colliderType = static_cast<int>(entity.collider.type);
+
+        // Queue this spawn for the client
+        std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+        for (auto& conn : clientConnections) {
+            if (conn->clientID == clientID) {
+                std::lock_guard<std::mutex> queueLock(conn->queueMutex);
+                conn->spawnQueue.push_back(spawnInfo);
+                break;
+            }
+        }
+    }
 }
 
 }

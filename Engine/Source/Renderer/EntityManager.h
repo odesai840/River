@@ -25,6 +25,8 @@ public:
 
     // Set renderer for texture loading
     void SetRenderer(SDL_Renderer* renderer) { rendererRef = renderer; }
+    // Set headless mode (for server-side entity management without graphics)
+    void SetHeadlessMode(bool headless) { headlessMode = headless; }
 
     // Thread-safe function to add an entity
     uint32_t AddEntity(const char* spritePath, float Xpos = 0.0f, float Ypos = 0.0f, float rotation = 0.0f,
@@ -93,6 +95,8 @@ private:
     uint32_t nextEntityID = 1;
     // Reference to the SDL renderer
     SDL_Renderer* rendererRef = nullptr;
+    // Headless mode flag (no texture loading for server)
+    bool headlessMode = false;
 
     // Function to load a texture from a file path
     TextureInfo LoadTexture(const char* spritePath);

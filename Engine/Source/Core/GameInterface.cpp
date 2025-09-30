@@ -1,4 +1,7 @@
 #include "GameInterface.h"
+#include "Networking/Server.h"
+#include "Networking/ServerInputManager.h"
+#include "Networking/NetworkProtocol.h"
 
 namespace RiverCore {
 
@@ -212,9 +215,69 @@ bool GameInterface::IsPaused() const {
     return false;
 }
 
-void GameInterface::SetLocalPlayer(uint32_t entityId) {
+InputState GameInterface::GetInputForClient(uint32_t clientID) {
+    if (serverInputManagerRef) {
+        return serverInputManagerRef->GetInputForClient(clientID);
+    }
+    return InputState();
+}
+
+std::vector<uint32_t> GameInterface::GetConnectedClients() {
+    if (serverRef) {
+        return serverRef->GetConnectedClients();
+    }
+    return std::vector<uint32_t>();
+}
+
+uint32_t GameInterface::GetPlayerEntityForClient(uint32_t clientID) {
+    if (serverRef) {
+        return serverRef->GetPlayerEntityForClient(clientID);
+    }
+    return 0;
+}
+
+void GameInterface::RegisterPlayerEntity(uint32_t clientID, uint32_t entityID) {
+    if (serverRef) {
+        serverRef->RegisterPlayerEntity(clientID, entityID);
+    }
+}
+
+void GameInterface::SendInputToServer(const std::unordered_map<std::string, bool>& buttons) {
     if (networkManagerRef) {
-        networkManagerRef->SetLocalPlayer(entityId);
+        networkManagerRef->SendInput(buttons);
+    }
+}
+
+uint32_t GameInterface::GetMyClientId() {
+    if (networkManagerRef) {
+        return networkManagerRef->GetClientId();
+    }
+    return 0;
+}
+
+void GameInterface::BroadcastEntitySpawn(uint32_t entityID, uint32_t excludeClientID) {
+    if (serverRef && entityManagerRef) {
+        Entity* entity = entityManagerRef->GetEntityByID(entityID);
+        if (entity) {
+            EntitySpawnInfo spawnInfo;
+            spawnInfo.entityID = entity->ID;
+            spawnInfo.spritePath = entity->spritePath;
+            spawnInfo.totalFrames = entity->totalFrames;
+            spawnInfo.fps = entity->fps;
+            spawnInfo.position = entity->position;
+            spawnInfo.scale = entity->scale;
+            spawnInfo.rotation = entity->rotation;
+            spawnInfo.physEnabled = entity->physApplied;
+            spawnInfo.colliderType = static_cast<int>(entity->collider.type);
+
+            serverRef->BroadcastEntitySpawn(spawnInfo, excludeClientID);
+        }
+    }
+}
+
+void GameInterface::BroadcastEntityDespawn(uint32_t entityID, uint32_t excludeClientID) {
+    if (serverRef) {
+        serverRef->BroadcastEntityDespawn(entityID, excludeClientID);
     }
 }
 

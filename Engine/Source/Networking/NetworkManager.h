@@ -2,8 +2,10 @@
 #define NETWORKMANAGER_H
 
 #include "Client.h"
+#include "NetworkProtocol.h"
 #include "Renderer/EntityManager.h"
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 
 namespace RiverCore {
@@ -25,15 +27,12 @@ public:
     // Set EntityManager reference for entity manipulation
     void SetEntityManager(EntityManager* entityManager) { entityManagerRef = entityManager; }
 
-    // Sets the entity ID for the local player
-    void SetLocalPlayer(uint32_t entityId);
-    // Networked player position update
-    void SendPosition(float x, float y);
+    // Send input to server (client mode)
+    void SendInput(const std::unordered_map<std::string, bool>& buttons,
+                   const std::unordered_map<std::string, float>& axes = {});
 
-    // Updates the game world for the local player
-    void UpdateNetworkedPlayers();
-    // Returns data for other clients
-    std::unordered_map<uint32_t, OtherClientData> GetOtherClients() const;
+    // Get client ID
+    uint32_t GetClientId() const;
 
 private:
     // Client instance for server communication
@@ -42,20 +41,29 @@ private:
     // EntityManager reference for creating/updating networked entities
     EntityManager* entityManagerRef = nullptr;
 
-    // Local player tracking
+    // Map server entity IDs to local entity IDs
+    std::unordered_map<uint32_t, uint32_t> serverToLocalEntityMap;
+
+    // Track which entity is the local player
     uint32_t localPlayerEntityId = 0;
 
-    // Map of networked player IDs and their associated entity IDs
-    std::unordered_map<uint32_t, uint32_t> networkedPlayers;
-    // Map of player IDs and their associated data
-    std::unordered_map<uint32_t, OtherClientData> lastKnownClients;
-    // Map of player IDs and their last known X positions for sprite flipping
-    std::unordered_map<uint32_t, float> lastKnownX;
+    // Track entities spawned by network
+    std::unordered_set<uint32_t> spawnedEntities;
 
-    // Creates a new networked player entity
-    void CreateNetworkedPlayer(uint32_t clientId, float x, float y);
-    // Removes the entity for a networked player
-    void RemoveNetworkedPlayer(uint32_t clientId);
+    // Synchronize entities from server state
+    void SyncEntitiesFromServer(const GameStateSnapshot& snapshot);
+
+    // Process pending spawn/despawn messages from server
+    void ProcessPendingSpawns();
+    void ProcessPendingDespawns();
+
+    // Sprite sheet cache
+    struct SpriteInfo {
+        std::string path;
+        int totalFrames;
+        float fps;
+    };
+    std::unordered_map<uint32_t, SpriteInfo> entitySpriteInfo;
 };
 
 }

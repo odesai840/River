@@ -1,6 +1,7 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include "NetworkProtocol.h"
 #include <string>
 #include <unordered_map>
 #include <chrono>
@@ -8,16 +9,6 @@
 #include <atomic>
 
 namespace RiverCore {
-
-// Struct for client data (other clients)
-struct OtherClientData {
-    float x = 0.0f;
-    float y = 0.0f;
-    std::chrono::time_point<std::chrono::steady_clock> lastUpdate;
-
-    OtherClientData() : lastUpdate(std::chrono::steady_clock::now()) {}
-    OtherClientData(float x, float y) : x(x), y(y), lastUpdate(std::chrono::steady_clock::now()) {}
-};
 
 class Client {
 public:
@@ -31,10 +22,17 @@ public:
     // Update client networking
     void Update();
 
-    // Send position update (thread-safe)
-    void SendPosition(float x, float y);
-    // Get other clients' positions (thread-safe)
-    std::unordered_map<uint32_t, OtherClientData> GetOtherClients() const;
+    // Send input to server (thread-safe)
+    void SendInput(const std::unordered_map<std::string, bool>& buttons,
+                   const std::unordered_map<std::string, float>& axes = {});
+
+    // Get latest game state from server (thread-safe)
+    GameStateSnapshot GetLatestGameState();
+
+    // Get and clear pending entity spawn messages (thread-safe)
+    std::vector<EntitySpawnInfo> GetPendingSpawns();
+    // Get and clear pending entity despawn messages (thread-safe)
+    std::vector<uint32_t> GetPendingDespawns();
 
     // Check if connected to server
     bool IsConnected() const { return connected.load() && clientId.load() != 0; }
@@ -47,25 +45,28 @@ private:
     std::atomic<uint32_t> clientId{0};
     std::atomic<bool> disconnecting{false};
 
-    // Thread-safe client data management
-    std::unordered_map<uint32_t, OtherClientData> otherClients;
-    mutable std::mutex otherClientsMutex;
+    // Latest input to send
+    InputState pendingInput;
+    mutable std::mutex inputMutex;
 
-    // Thread-safe position tracking
-    std::atomic<float> currentX{0.0f};
-    std::atomic<float> currentY{0.0f};
-    std::atomic<bool> positionDirty{false};
+    // Latest game state received
+    GameStateSnapshot latestState;
+    mutable std::mutex stateMutex;
+
+    // Pending entity spawn/despawn messages
+    std::vector<EntitySpawnInfo> pendingSpawns;
+    std::vector<uint32_t> pendingDespawns;
+    mutable std::mutex pendingMessagesMutex;
 
     // Mutex for socket synchronization
     mutable std::mutex socketMutex;
 
     // Connection timing
-    std::chrono::time_point<std::chrono::steady_clock> lastPositionUpdate;
-    static constexpr int POSITION_UPDATE_INTERVAL_MS = 16;
+    std::chrono::time_point<std::chrono::steady_clock> lastUpdate;
+    static constexpr int UPDATE_INTERVAL_MS = 16;
 
-    // Game state management
-    void UpdateAndGetGameState();
-    void ParseGameStateResponse(const std::string& response);
+    // Send input and receive game state
+    void SendInputAndReceiveState();
 
     // Socket management
     void InitializeSockets(const std::string& serverAddress);
