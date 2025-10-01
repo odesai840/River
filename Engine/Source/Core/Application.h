@@ -13,6 +13,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <condition_variable>
 #include <string>
 
 namespace RiverCore {

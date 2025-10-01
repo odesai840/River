@@ -332,11 +332,11 @@ void Server::ClientThread(uint32_t clientID, void* socketPtr) {
 void Server::SimulationLoop() {
     std::cout << "Server simulation loop started\n";
 
-    auto lastTime = std::chrono::high_resolution_clock::now();
+    auto lastTime = std::chrono::steady_clock::now();
     float accumulator = 0.0f;
 
     while (running.load()) {
-        auto currentTime = std::chrono::high_resolution_clock::now();
+        auto currentTime = std::chrono::steady_clock::now();
         float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
         lastTime = currentTime;
 
