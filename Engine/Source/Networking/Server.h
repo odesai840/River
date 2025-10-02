@@ -88,7 +88,7 @@ private:
     // Game state queue for sending to clients
     struct GameStatePacket {
         GameStateSnapshot snapshot;
-        std::chrono::time_point<std::chrono::steady_clock> timestamp;
+        std::chrono::time_point<std::chrono::high_resolution_clock> timestamp;
     };
     std::queue<GameStatePacket> stateQueue;
     mutable std::mutex stateQueueMutex;
