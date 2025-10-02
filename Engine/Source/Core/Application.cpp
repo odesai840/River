@@ -137,14 +137,7 @@ void Application::RenderThreadFunction_ListenServer(Server* server) {
         // Release lock allow rendering events
         lock.unlock();
 
-        // NOTE: Animations are updated by server's simulation loop
-        // No need to update animations here
-
-        // NOTE: Game logic is also updated by server's simulation loop
-        // Local input handling is done in ServerUpdate() when !IsHeadlessServer()
-        // No need to call OnUpdate here - would cause double updates and race conditions
-
-        // Render the frame using SERVER's EntityManager (not app's)
+        // Render the frame
         renderer.BeginFrame(effectiveDeltaTime, server->GetEntityManager());
         renderer.EndFrame();
     }
