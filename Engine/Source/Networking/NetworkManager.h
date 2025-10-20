@@ -34,6 +34,9 @@ public:
     // Get client ID
     uint32_t GetClientId() const;
 
+    // Get local player entity ID (client mode)
+    uint32_t GetLocalPlayerEntity() const { return localPlayerEntityId; }
+
 private:
     // Client instance for server communication
     Client client;

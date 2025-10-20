@@ -177,6 +177,118 @@ void GameInterface::ToggleDebugCollisions() {
     }
 }
 
+void GameInterface::SetCameraPosition(const Vec2& pos) {
+    if (rendererRef) {
+        rendererRef->GetCamera().SetPosition(pos);
+    }
+}
+
+void GameInterface::SetCameraPosition(float x, float y) {
+    SetCameraPosition(Vec2(x, y));
+}
+
+Vec2 GameInterface::GetCameraPosition() const {
+    if (rendererRef) {
+        return rendererRef->GetCamera().GetPosition();
+    }
+    return Vec2::zero();
+}
+
+void GameInterface::MoveCamera(const Vec2& delta) {
+    if (rendererRef) {
+        rendererRef->GetCamera().Move(delta);
+    }
+}
+
+void GameInterface::MoveCamera(float deltaX, float deltaY) {
+    MoveCamera(Vec2(deltaX, deltaY));
+}
+
+void GameInterface::SnapCameraToPosition(const Vec2& pos) {
+    if (rendererRef) {
+        rendererRef->GetCamera().SnapToPosition(pos);
+    }
+}
+
+void GameInterface::SetCameraZoom(float zoom) {
+    if (rendererRef) {
+        rendererRef->GetCamera().SetZoom(zoom);
+    }
+}
+
+float GameInterface::GetCameraZoom() const {
+    if (rendererRef) {
+        return rendererRef->GetCamera().GetZoom();
+    }
+    return 1.0f;
+}
+
+void GameInterface::SetCameraZoomLimits(float min, float max) {
+    if (rendererRef) {
+        rendererRef->GetCamera().SetZoomLimits(min, max);
+    }
+}
+
+void GameInterface::SetCameraBounds(const Vec2& min, const Vec2& max) {
+    if (rendererRef) {
+        rendererRef->GetCamera().SetBounds(min, max);
+    }
+}
+
+void GameInterface::SetCameraBounds(float minX, float minY, float maxX, float maxY) {
+    SetCameraBounds(Vec2(minX, minY), Vec2(maxX, maxY));
+}
+
+void GameInterface::EnableCameraBounds(bool enable) {
+    if (rendererRef) {
+        rendererRef->GetCamera().EnableBounds(enable);
+    }
+}
+
+void GameInterface::FollowCameraTarget(const Vec2& targetPos, float smoothing, float deltaTime) {
+    if (rendererRef) {
+        rendererRef->GetCamera().FollowTarget(targetPos, smoothing, deltaTime);
+    }
+}
+
+void GameInterface::FollowCameraTarget(float targetX, float targetY, float smoothing, float deltaTime) {
+    FollowCameraTarget(Vec2(targetX, targetY), smoothing, deltaTime);
+}
+
+void GameInterface::SetCameraDeadZone(float width, float height) {
+    if (rendererRef) {
+        rendererRef->GetCamera().SetFollowDeadZone(width, height);
+    }
+}
+
+bool GameInterface::IsCameraInDeadZone(const Vec2& targetPos) const {
+    if (rendererRef) {
+        return rendererRef->GetCamera().IsInDeadZone(targetPos);
+    }
+    return false;
+}
+
+Vec2 GameInterface::GetVisibleWorldMin() const {
+    if (rendererRef) {
+        return rendererRef->GetCamera().GetVisibleWorldMin();
+    }
+    return Vec2::zero();
+}
+
+Vec2 GameInterface::GetVisibleWorldMax() const {
+    if (rendererRef) {
+        return rendererRef->GetCamera().GetVisibleWorldMax();
+    }
+    return Vec2::zero();
+}
+
+bool GameInterface::IsWorldPositionVisible(const Vec2& worldPos, const Vec2& size) const {
+    if (rendererRef) {
+        return rendererRef->GetCamera().IsVisible(worldPos, size);
+    }
+    return false;
+}
+
 void GameInterface::SetTimeScale(float scale) {
     if (timelineRef) {
         timelineRef->SetTimeScale(scale);
@@ -248,14 +360,21 @@ void GameInterface::SendInputToServer(const std::unordered_map<std::string, bool
     }
 }
 
-uint32_t GameInterface::GetMyClientId() {
+uint32_t GameInterface::GetLocalClientId() {
     if (networkManagerRef) {
         return networkManagerRef->GetClientId();
     }
     return 0;
 }
 
-void GameInterface::BroadcastEntitySpawn(uint32_t entityID, uint32_t excludeClientID) {
+uint32_t GameInterface::GetLocalPlayerEntity() {
+    if (networkManagerRef) {
+        return networkManagerRef->GetLocalPlayerEntity();
+    }
+    return 0;
+}
+
+void GameInterface::BroadcastEntitySpawn(uint32_t entityID, uint32_t ownerClientID, uint32_t excludeClientID) {
     if (serverRef && entityManagerRef) {
         Entity* entity = entityManagerRef->GetEntityByID(entityID);
         if (entity) {
@@ -270,7 +389,7 @@ void GameInterface::BroadcastEntitySpawn(uint32_t entityID, uint32_t excludeClie
             spawnInfo.physEnabled = entity->physApplied;
             spawnInfo.colliderType = static_cast<int>(entity->collider.type);
 
-            serverRef->BroadcastEntitySpawn(spawnInfo, excludeClientID);
+            serverRef->BroadcastEntitySpawn(spawnInfo, ownerClientID, excludeClientID);
         }
     }
 }

@@ -3,6 +3,7 @@
 
 #include "Entity.h"
 #include "EntityManager.h"
+#include "Camera.h"
 #include <SDL3/SDL.h>
 
 namespace RiverCore {
@@ -33,6 +34,12 @@ public:
     // Function to toggle the collision debug boxes
     void ToggleDebugCollisions();
 
+    // Resize the renderer and update camera viewport
+    void Resize(int width, int height);
+
+    // Get a reference to the camera
+    Camera& GetCamera();
+
 private:
     // Internal pointer to the underlying SDL renderer
     SDL_Renderer* rendererRef = nullptr;
@@ -50,6 +57,9 @@ private:
 
     // Boolean flag to toggle collision debug boxes
     bool debugCollisions = false;
+
+    // Camera for viewport transforms
+    Camera camera;
 
     // Function to render an entity
     void RenderEntity(const Entity& entity, float globalScaleX, float globalScaleY) const;

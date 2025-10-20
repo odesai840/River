@@ -108,6 +108,12 @@ void NetworkManager::ProcessPendingSpawns() {
             entityManagerRef->SetColliderType(entityID, static_cast<ColliderType>(spawnInfo.colliderType));
             spawnedEntities.insert(entityID);
 
+            // Check if this entity is owned by us
+            if (spawnInfo.ownerClientID == GetClientId() && spawnInfo.ownerClientID != 0) {
+                localPlayerEntityId = entityID;
+                std::cout << "NetworkManager: This is our player entity! ID: " << entityID << "\n";
+            }
+
             std::cout << "NetworkManager: Spawned entity ID " << entityID
                       << " (" << spawnInfo.spritePath << ")\n";
         }

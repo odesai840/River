@@ -61,7 +61,7 @@ public:
     uint32_t GetPlayerEntityForClient(uint32_t clientID) const;
 
     // Entity spawn/despawn broadcasting
-    void BroadcastEntitySpawn(const EntitySpawnInfo& spawnInfo, uint32_t excludeClientID = 0);
+    void BroadcastEntitySpawn(const EntitySpawnInfo& spawnInfo, uint32_t ownerClientID = 0, uint32_t excludeClientID = 0);
     void BroadcastEntityDespawn(uint32_t entityID, uint32_t excludeClientID = 0);
 
 private:

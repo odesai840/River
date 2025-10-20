@@ -98,6 +98,46 @@ protected:
     void ToggleScalingMode();
     // Toggles collision debug boxes
     void ToggleDebugCollisions();
+
+    // Sets camera position
+    void SetCameraPosition(const Vec2& pos);
+    // Sets camera position
+    void SetCameraPosition(float x, float y);
+    // Gets camera position
+    Vec2 GetCameraPosition() const;
+    // Moves camera
+    void MoveCamera(const Vec2& delta);
+    // Moves camera
+    void MoveCamera(float deltaX, float deltaY);
+    // Moves camera to a new position instantly
+    void SnapCameraToPosition(const Vec2& pos);
+    // Sets camera zoom
+    void SetCameraZoom(float zoom);
+    // Gets camera zoom
+    float GetCameraZoom() const;
+    // Sets camera zoom limits
+    void SetCameraZoomLimits(float min, float max);
+    // Sets camera bounds
+    void SetCameraBounds(const Vec2& min, const Vec2& max);
+    // Sets camera bounds
+    void SetCameraBounds(float minX, float minY, float maxX, float maxY);
+    // Enables/disables camera bounds
+    void EnableCameraBounds(bool enable);
+    // Sets camera to follow a target position with smoothing
+    void FollowCameraTarget(const Vec2& targetPos, float smoothing, float deltaTime);
+    // Sets camera to follow a target position with smoothing
+    void FollowCameraTarget(float targetX, float targetY, float smoothing, float deltaTime);
+    // Sets camera follow dead zone
+    void SetCameraDeadZone(float width, float height);
+    // Checks if the camera is in the dead zone
+    bool IsCameraInDeadZone(const Vec2& targetPos) const;
+    // Camera viewport query (what world area is visible on screen)
+    Vec2 GetVisibleWorldMin() const;
+    // Camera viewport query (what world area is visible on screen)
+    Vec2 GetVisibleWorldMax() const;
+    // Camera viewport query (what world area is visible on screen)
+    bool IsWorldPositionVisible(const Vec2& worldPos, const Vec2& size) const;
+    
     // Sets the internal engine time scale to a custom time scale
     void SetTimeScale(float scale);
     // Gets the internal engine time scale
@@ -117,17 +157,25 @@ protected:
     bool IsStandalone() const { return currentMode == NetworkMode::STANDALONE; }
     bool IsHeadlessServer() const { return headlessServer; }
 
-    // Server-only functions
+    // Gets the input state of a connected client
     InputState GetInputForClient(uint32_t clientID);
+    // Gets the IDs of all connected clients
     std::vector<uint32_t> GetConnectedClients();
+    // Gets the entity id of a connected client
     uint32_t GetPlayerEntityForClient(uint32_t clientID);
+    // Sets the entity id of a connected client (useful for listen-server host player)
     void RegisterPlayerEntity(uint32_t clientID, uint32_t entityID);
-    void BroadcastEntitySpawn(uint32_t entityID, uint32_t excludeClientID = 0);
+    // Broadcasts entity spawns to connected clients
+    void BroadcastEntitySpawn(uint32_t entityID, uint32_t ownerClientID = 0, uint32_t excludeClientID = 0);
+    // Broadcasts entity despawns to connected clients
     void BroadcastEntityDespawn(uint32_t entityID, uint32_t excludeClientID = 0);
 
-    // Client-only functions
+    // Sends client input states to the server
     void SendInputToServer(const std::unordered_map<std::string, bool>& buttons);
-    uint32_t GetMyClientId();
+    // Gets the local player's client ID
+    uint32_t GetLocalClientId();
+    // Gets the local player's entity ID
+    uint32_t GetLocalPlayerEntity();
 
 private:
     // Internal renderer reference (internal use only)
@@ -142,10 +190,11 @@ private:
     Timeline* timelineRef = nullptr;
     // Internal network manager reference (internal use only)
     NetworkManager* networkManagerRef = nullptr;
-    // Internal server input manager reference (server mode only)
+    // Internal server input manager reference (internal use and server mode only)
     ServerInputManager* serverInputManagerRef = nullptr;
-    // Internal server reference (server mode only)
+    // Internal server reference (internal use and server mode only)
     Server* serverRef = nullptr;
+    
     // Current network mode
     NetworkMode currentMode = NetworkMode::STANDALONE;
     // Headless server flag (server mode only)

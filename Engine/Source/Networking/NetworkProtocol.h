@@ -155,6 +155,7 @@ struct EntitySpawnInfo {
     float rotation = 0.0f;
     bool physEnabled = false;
     int colliderType = 0;
+    uint32_t ownerClientID = 0;  // 0 = shared, non-zero = owned by that client
 
     // Serialization
     std::string Serialize() const {
@@ -167,7 +168,8 @@ struct EntitySpawnInfo {
             << scale.x << " " << scale.y << " "
             << rotation << " "
             << (physEnabled ? 1 : 0) << " "
-            << colliderType;
+            << colliderType << " "
+            << ownerClientID;
         return oss.str();
     }
 
@@ -191,7 +193,8 @@ struct EntitySpawnInfo {
             >> info.scale.x >> info.scale.y
             >> info.rotation
             >> physInt
-            >> info.colliderType;
+            >> info.colliderType
+            >> info.ownerClientID;
 
         info.physEnabled = (physInt != 0);
 

@@ -1,11 +1,12 @@
 #include "Renderer.h"
 #include <SDL3/SDL_log.h>
-#include <SDL3_image/SDL_image.h>
 
 namespace RiverCore {
 
-Renderer::Renderer() {
-    
+Renderer::Renderer()
+    : camera(1920, 1080)
+{
+
 }
 
 Renderer::~Renderer() {
@@ -24,11 +25,22 @@ void Renderer::Init(SDL_Window* window) {
     SDL_GetRenderOutputSize(rendererRef, &windowWidth, &windowHeight);
     baseWindowWidth = static_cast<float>(windowWidth);
     baseWindowHeight = static_cast<float>(windowHeight);
+
+    // Update camera viewport to match window size
+    camera.SetViewportSize(windowWidth, windowHeight);
 }
 
 void Renderer::BeginFrame(float deltaTime, EntityManager& entityManager) {
     // Initialize the window width and height for scaling purposes
-    SDL_GetRenderOutputSize(rendererRef, &windowWidth, &windowHeight);
+    int newWidth, newHeight;
+    SDL_GetRenderOutputSize(rendererRef, &newWidth, &newHeight);
+
+    // Update camera viewport if window size changed
+    if (newWidth != windowWidth || newHeight != windowHeight) {
+        windowWidth = newWidth;
+        windowHeight = newHeight;
+        camera.SetViewportSize(windowWidth, windowHeight);
+    }
 
     // Clear the render target with a dark blue color
     SDL_SetRenderDrawColor(rendererRef, 0x00, 0x00, 0x1F, 0xFF);
@@ -73,16 +85,19 @@ void Renderer::RenderEntity(const Entity& entity, float globalScaleX, float glob
     float finalSpriteWidth = spriteWidth * entity.scale.x * globalScaleX;
     float finalSpriteHeight = entity.spriteHeight * entity.scale.y * globalScaleY;
 
+    // Apply camera transform to get camera-relative position (includes camera offset and zoom)
+    Vec2 cameraRelativePos = camera.ApplyCameraTransform(entity.position);
+
     // Calculate sprite position with scaling mode consideration
     float finalXPos, finalYPos;
     if (scalingMode == ScalingMode::PixelBased) {
         // In pixel-based mode, positions remain constant in screen coordinates
-        finalXPos = (entity.position.x + (static_cast<float>(windowWidth) / 2.0f)) - (finalSpriteWidth / 2.0f);
-        finalYPos = (-entity.position.y + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
+        finalXPos = (cameraRelativePos.x + (static_cast<float>(windowWidth) / 2.0f)) - (finalSpriteWidth / 2.0f);
+        finalYPos = (-cameraRelativePos.y + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
     } else {
         // In proportional mode, positions scale with the window
-        float scaledXPos = entity.position.x * globalScaleX;
-        float scaledYPos = entity.position.y * globalScaleY;
+        float scaledXPos = cameraRelativePos.x * globalScaleX;
+        float scaledYPos = cameraRelativePos.y * globalScaleY;
         finalXPos = (scaledXPos + (static_cast<float>(windowWidth) / 2.0f)) - (finalSpriteWidth / 2.0f);
         finalYPos = (-scaledYPos + (static_cast<float>(windowHeight) / 2.0f)) - (finalSpriteHeight / 2.0f);
     }
@@ -120,19 +135,24 @@ void Renderer::RenderEntity(const Entity& entity, float globalScaleX, float glob
         float collisionHeight = entity.spriteHeight * abs(entity.scale.y);
 
         // Calculate world space collision bounds
-        float worldX1 = entity.position.x - (collisionWidth / 2.0f);
-        float worldY1 = entity.position.y - (collisionHeight / 2.0f);
+        Vec2 worldCollisionPos = Vec2(
+            entity.position.x - (collisionWidth / 2.0f),
+            entity.position.y - (collisionHeight / 2.0f)
+        );
 
-        // Convert world space to screen space
+        // Apply camera transform
+        Vec2 cameraRelativeCollisionPos = camera.ApplyCameraTransform(worldCollisionPos);
+
+        // Convert camera-relative space to screen space
         float screenX, screenY;
         if (scalingMode == ScalingMode::PixelBased) {
-            screenX = (worldX1 + (static_cast<float>(windowWidth) / 2.0f));
-            screenY = (-worldY1 + (static_cast<float>(windowHeight) / 2.0f)) - collisionHeight;
+            screenX = (cameraRelativeCollisionPos.x + (static_cast<float>(windowWidth) / 2.0f));
+            screenY = (-cameraRelativeCollisionPos.y + (static_cast<float>(windowHeight) / 2.0f)) - collisionHeight;
         } else {
-            float scaledWorldX = worldX1 * globalScaleX;
-            float scaledWorldY = worldY1 * globalScaleY;
-            screenX = (scaledWorldX + (static_cast<float>(windowWidth) / 2.0f));
-            screenY = (-scaledWorldY + (static_cast<float>(windowHeight) / 2.0f)) - (collisionHeight * globalScaleY);
+            float scaledX = cameraRelativeCollisionPos.x * globalScaleX;
+            float scaledY = cameraRelativeCollisionPos.y * globalScaleY;
+            screenX = (scaledX + (static_cast<float>(windowWidth) / 2.0f));
+            screenY = (-scaledY + (static_cast<float>(windowHeight) / 2.0f)) - (collisionHeight * globalScaleY);
         }
 
         // Draw debug collision box with correct dimensions
@@ -172,5 +192,14 @@ void Renderer::ToggleDebugCollisions() {
     debugCollisions = !debugCollisions;
 }
 
+void Renderer::Resize(int width, int height) {
+    windowWidth = width;
+    windowHeight = height;
+    camera.SetViewportSize(width, height);
+}
+
+Camera& Renderer::GetCamera() {
+    return camera;
+}
 
 }

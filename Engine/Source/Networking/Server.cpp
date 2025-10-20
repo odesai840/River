@@ -453,18 +453,22 @@ uint32_t Server::GetPlayerEntityForClient(uint32_t clientID) const {
     return 0;
 }
 
-void Server::BroadcastEntitySpawn(const EntitySpawnInfo& spawnInfo, uint32_t excludeClientID) {
+void Server::BroadcastEntitySpawn(const EntitySpawnInfo& spawnInfo, uint32_t ownerClientID, uint32_t excludeClientID) {
     std::lock_guard<std::mutex> lock(clientConnectionsMutex);
+
+    // Create a copy with owner set
+    EntitySpawnInfo spawnInfoWithOwner = spawnInfo;
+    spawnInfoWithOwner.ownerClientID = ownerClientID;
 
     for (auto& conn : clientConnections) {
         if (conn->active.load() && conn->clientID != excludeClientID) {
             std::lock_guard<std::mutex> queueLock(conn->queueMutex);
-            conn->spawnQueue.push_back(spawnInfo);
+            conn->spawnQueue.push_back(spawnInfoWithOwner);
         }
     }
 
     std::cout << "Broadcasted entity spawn (ID: " << spawnInfo.entityID << ") to "
-              << clientConnections.size() << " clients\n";
+              << clientConnections.size() << " clients (owner: " << ownerClientID << ")\n";
 }
 
 void Server::BroadcastEntityDespawn(uint32_t entityID, uint32_t excludeClientID) {
