@@ -36,13 +36,16 @@ void GameInterface::UpdateEntityPosition(uint32_t entityID, float newX, float ne
 }
 
 std::vector<std::pair<uint32_t, int>> GameInterface::GetEntityCollisions(uint32_t entityID) {
-    if(entityManagerRef) {
-        Entity* entity = entityManagerRef->GetEntityByID(entityID);
-        if (entity) {
-            return entity->collider.GetCollisions();
+    if (entityManagerRef) {
+        std::vector<std::pair<uint32_t, int>> result;
+        bool success = entityManagerRef->GetEntityProperty(entityID, [&result](const Entity& entity){
+            result = entity.collider.GetCollisions();
+        });
+        if (success) {
+            return result;
         }
     }
-    return std::vector<std::pair<uint32_t, int>>();
+    return {};
 }
 
 bool GameInterface::IsKeyPressed(SDL_Scancode key) {
@@ -331,14 +334,14 @@ InputState GameInterface::GetInputForClient(uint32_t clientID) {
     if (serverInputManagerRef) {
         return serverInputManagerRef->GetInputForClient(clientID);
     }
-    return InputState();
+    return {};
 }
 
 std::vector<uint32_t> GameInterface::GetConnectedClients() {
     if (serverRef) {
         return serverRef->GetConnectedClients();
     }
-    return std::vector<uint32_t>();
+    return {};
 }
 
 uint32_t GameInterface::GetPlayerEntityForClient(uint32_t clientID) {
