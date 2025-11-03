@@ -35,14 +35,19 @@ namespace RiverCore{
 
     class EventManager {
         public:
-            //List of event types by default the dev can make
+            // List of event types by default the dev can make
             const static int EVENT_TYPE_COLLISION = 3;
             const static int EVENT_TYPE_SPAWN = 2;
             const static int EVENT_TYPE_DEATH = 1;
             const static int EVENT_TYPE_INPUT = 4;
 
+            // Create an event manager
             EventManager() = default;
+            
+            // Registers an event into the event map
             void Register();
+
+            // Deregisters the event
             void Deregister();
             void Raise();
         private:
