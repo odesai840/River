@@ -46,10 +46,14 @@ public:
     EventManager() = default;
     
     // Registers an event into the event map
-    void Register();
+    void Register(std::string name, Event e) {
+        
+    }
 
     // Deregisters the event
-    void Deregister();
+    void Deregister(std::string name) {
+        eventMap.erase(name);
+    }
     void Raise();
 private:
     std::unordered_map<std::string, Event> eventMap;
