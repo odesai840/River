@@ -5,8 +5,7 @@
 
 namespace RiverCore {
 
-class Camera
-{
+class Camera {
 public:
     Camera(int viewportWidth, int viewportHeight);
 
