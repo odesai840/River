@@ -6,6 +6,8 @@
 #include <unordered_map> // For std::unordered_map, to store event listeners
 #include <vector>
 #include <string>
+#include <queue>
+#include <utility>
 
 namespace RiverCore{
 
@@ -47,17 +49,39 @@ public:
     
     // Registers an event into the event map
     void Register(std::string name, Event e) {
-        
+        eventMap.insert(std::make_pair(name, e));
     }
 
     // Deregisters the event
     void Deregister(std::string name) {
         eventMap.erase(name);
     }
-    void Raise();
+
+    // Pushes event to the queue
+    void Queue(std::string name) {
+        eventQueue.push(name);
+    }
+
+    void Raise(Event e) {
+
+        int eventsToProcess = eventQueue.size();
+
+        for (int i = 0; i < eventsToProcess; i++) {
+
+            std::string eventName = eventQueue.front();
+            eventQueue.pop();
+
+            auto it = eventMap.find(eventName);
+            if ( it != eventMap.end()) {
+                for (auto& handler : it->second) {
+                    handler();
+                }
+            }
+        }
+    }
 private:
     std::unordered_map<std::string, Event> eventMap;
-    
+    std::queue<std::string> eventQueue;
 };
 
 }
