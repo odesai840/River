@@ -8,6 +8,7 @@
 #include "Timeline.h"
 #include "Networking/NetworkManager.h"
 #include "NetworkMode.h"
+#include "EventHandler/EventManager.h"
 
 namespace RiverCore {
 
@@ -177,6 +178,15 @@ protected:
     // Gets the local player's entity ID
     uint32_t GetLocalPlayerEntity();
 
+    // Registers an Event
+    void Register(std::string name, Event e);
+    // Deregisters event
+    void Deregister(std::string name);
+    // Queues event
+    void Queue (std::string name);
+    // Raises events in order of queue
+    void Raise ();
+
 private:
     // Internal renderer reference (internal use only)
     Renderer* rendererRef = nullptr;
@@ -194,6 +204,8 @@ private:
     ServerInputManager* serverInputManagerRef = nullptr;
     // Internal server reference (internal use and server mode only)
     Server* serverRef = nullptr;
+    // Internal event manager refference (internal use only)
+    EventManager* eventManagerRef = nullptr;
     
     // Current network mode
     NetworkMode currentMode = NetworkMode::STANDALONE;

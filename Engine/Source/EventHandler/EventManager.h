@@ -62,7 +62,7 @@ public:
         eventQueue.push(name);
     }
 
-    void Raise(Event e) {
+    void Raise() {
 
         int eventsToProcess = eventQueue.size();
 

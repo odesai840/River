@@ -377,6 +377,34 @@ uint32_t GameInterface::GetLocalPlayerEntity() {
     return 0;
 }
 
+void GameInterface::Register(std::string name, Event e)
+{
+    if (eventManagerRef) {
+        eventManagerRef->Register(name, e);
+    }
+}
+
+void GameInterface::Deregister(std::string name)
+{
+    if (eventManagerRef) {
+        eventManagerRef->Deregister(name);
+    }
+}
+
+void GameInterface::Queue(std::string name)
+{
+    if (eventManagerRef) {
+        eventManagerRef->Queue(name);  
+    }
+}
+
+void GameInterface::Raise()
+{
+    if (eventManagerRef) {
+        eventManagerRef->Raise();   
+    }
+}
+
 void GameInterface::BroadcastEntitySpawn(uint32_t entityID, uint32_t ownerClientID, uint32_t excludeClientID) {
     if (serverRef && entityManagerRef) {
         Entity* entity = entityManagerRef->GetEntityByID(entityID);
