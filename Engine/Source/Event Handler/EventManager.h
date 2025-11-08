@@ -49,7 +49,7 @@ public:
     
     // Registers an event into the event map
     void Register(std::string name, Event e) {
-        eventMap.insert(std::make_pair(name, e));
+        eventMap[name].push_back(e);
     }
 
     // Deregisters the event
@@ -73,14 +73,14 @@ public:
 
             auto it = eventMap.find(eventName);
             if ( it != eventMap.end()) {
-                for (auto& handler : it->second) {
-                    handler();
+                for (auto& event : it->second) {
+                    event.handler();
                 }
             }
         }
     }
 private:
-    std::unordered_map<std::string, Event> eventMap;
+    std::unordered_map<std::string, std::vector<Event>> eventMap;
     std::queue<std::string> eventQueue;
 };
 
