@@ -11,6 +11,7 @@
 #include "Timeline.h"
 #include "Networking/NetworkManager.h"
 #include "EventHandler/EventManager.h"
+#include "Replay/ReplayManager.h"
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -56,6 +57,8 @@ private:
     NetworkManager networkManager;
     // Event manager for event-driven gameplay
     EventManager eventManager;
+    // Replay manager for recording and playback
+    ReplayManager replayManager;
 
     // Current network mode
     NetworkMode currentMode = NetworkMode::STANDALONE;

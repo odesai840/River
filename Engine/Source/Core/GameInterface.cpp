@@ -2,6 +2,7 @@
 #include "Networking/Server.h"
 #include "Networking/ServerInputManager.h"
 #include "Networking/NetworkProtocol.h"
+#include "Replay/ReplayManager.h"
 
 namespace RiverCore {
 
@@ -429,6 +430,57 @@ void GameInterface::BroadcastEntityDespawn(uint32_t entityID, uint32_t excludeCl
     if (serverRef) {
         serverRef->BroadcastEntityDespawn(entityID, excludeClientID);
     }
+}
+
+void GameInterface::StartReplayRecording(float keyframeIntervalSeconds) {
+    if (replayManagerRef) {
+        replayManagerRef->StartRecording(keyframeIntervalSeconds);
+    }
+}
+
+void GameInterface::StopReplayRecording() {
+    if (replayManagerRef) {
+        replayManagerRef->StopRecording();
+    }
+}
+
+void GameInterface::StartReplayPlayback() {
+    if (replayManagerRef) {
+        replayManagerRef->StartPlayback();
+    }
+}
+
+void GameInterface::StopReplayPlayback() {
+    if (replayManagerRef) {
+        replayManagerRef->StopPlayback();
+    }
+}
+
+void GameInterface::ClearReplay() {
+    if (replayManagerRef) {
+        replayManagerRef->ClearReplay();
+    }
+}
+
+bool GameInterface::IsReplayRecording() const {
+    if (replayManagerRef) {
+        return replayManagerRef->IsRecording();
+    }
+    return false;
+}
+
+bool GameInterface::IsReplayPlaying() const {
+    if (replayManagerRef) {
+        return replayManagerRef->IsPlaying();
+    }
+    return false;
+}
+
+bool GameInterface::HasReplay() const {
+    if (replayManagerRef) {
+        return replayManagerRef->HasReplay();
+    }
+    return false;
 }
 
 }

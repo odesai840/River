@@ -16,7 +16,12 @@ enum EventType
     EVENT_TYPE_DEATH,
     EVENT_TYPE_SPAWN,
     EVENT_TYPE_COLLISION,
-    EVENT_TYPE_INPUT
+    EVENT_TYPE_INPUT,
+    EVENT_TYPE_START_RECORDING,
+    EVENT_TYPE_STOP_RECORDING,
+    EVENT_TYPE_START_PLAYBACK,
+    EVENT_TYPE_STOP_PLAYBACK,
+    EVENT_TYPE_CLEAR_REPLAY
 };
 
 // Data payload for events
@@ -26,6 +31,7 @@ struct EventData {
     Vec2 position = Vec2::zero();       // For spawn positions
     int collisionSide = 0;              // Collision direction
     std::unordered_map<std::string, bool> inputButtons;  // For input events
+    int keyframeInterval = 1;          // For replay recording (seconds between keyframes)
 
     // Default constructor
     EventData() = default;
@@ -62,6 +68,11 @@ public:
     // Create an event manager
     EventManager() = default;
 
+    // Set input recording callback (called when input events are queued during recording)
+    void SetInputRecordingCallback(std::function<void(const EventData&)> callback) {
+        inputRecordCallback = callback;
+    }
+
     // Registers an event into the event map
     void Register(int type, Event e) {
         eventMap[type].push_back(e);
@@ -73,9 +84,7 @@ public:
     }
 
     // Pushes event to the queue with data
-    void Queue(int type, EventData data = EventData()) {
-        eventQueue.push({type, data});
-    }
+    void Queue(int type, EventData data = EventData());
 
     void Raise() {
 
@@ -97,9 +106,11 @@ public:
             }
         }
     }
+
 private:
     std::unordered_map<int, std::vector<Event>> eventMap;
     std::queue<std::pair<int, EventData>> eventQueue;
+    std::function<void(const EventData&)> inputRecordCallback;
 };
 
 }

@@ -104,6 +104,9 @@ void Application::RenderThreadFunction() {
         // Update game logic
         gameRef->OnUpdate(effectiveDeltaTime);
 
+        // Update replay manager
+        replayManager.Update(eventManager, effectiveDeltaTime);
+
         // Render the frame
         renderer.BeginFrame(effectiveDeltaTime, entityManager);
         renderer.EndFrame();
@@ -175,6 +178,15 @@ void Application::Run(GameInterface* game) {
     game->SetTimeline(&timeline);
     game->SetEventManager(&eventManager);
     game->SetMode(NetworkMode::STANDALONE);
+
+    // Set up replay manager
+    replayManager.SetEntityManager(&entityManager);
+    game->SetReplayManager(&replayManager);
+
+    // Connect EventManager to ReplayManager for input recording
+    eventManager.SetInputRecordingCallback([this](const EventData& data) {
+        replayManager.RecordInput(data);
+    });
 
     // Run game start method
     game->OnStart();
@@ -345,6 +357,15 @@ void Application::RunClient(const std::string& serverAddress, GameInterface* gam
     game->SetTimeline(&timeline);
     game->SetEventManager(&eventManager);
     game->SetMode(NetworkMode::CLIENT);
+
+    // Set up replay manager
+    replayManager.SetEntityManager(&entityManager);
+    game->SetReplayManager(&replayManager);
+
+    // Connect EventManager to ReplayManager for input recording
+    eventManager.SetInputRecordingCallback([this](const EventData& data) {
+        replayManager.RecordInput(data);
+    });
 
     // Initialize NetworkManager and connect to server
     networkManager.SetEntityManager(&entityManager);

@@ -9,6 +9,7 @@
 #include "Networking/NetworkManager.h"
 #include "NetworkMode.h"
 #include "EventHandler/EventManager.h"
+#include "Replay/ReplayManager.h"
 
 namespace RiverCore {
 
@@ -47,6 +48,8 @@ public:
     void SetServerRef(Server* server) { this->serverRef = server; }
     // Set event manager reference (for use in engine core only)
     void SetEventManager(EventManager* eventManager) { this->eventManagerRef = eventManager; }
+    // Set replay manager reference (for use in engine core only)
+    void SetReplayManager(ReplayManager* replayManager) { this->replayManagerRef = replayManager; }
     // Set network mode (for use in engine core only)
     void SetMode(NetworkMode mode) { this->currentMode = mode; }
     // Set headless server flag (for server mode only)
@@ -189,6 +192,23 @@ protected:
     // Raises events in order of queue
     void Raise();
 
+    // Starts replay recording
+    void StartReplayRecording(float keyframeIntervalSeconds = 1.0f);
+    // Stops replay recording
+    void StopReplayRecording();
+    // Starts replay playback
+    void StartReplayPlayback();
+    // Stops replay playback
+    void StopReplayPlayback();
+    // Clears replay data from memory
+    void ClearReplay();
+    // Returns whether a replay is currently being recorded
+    bool IsReplayRecording() const;
+    // Returns whether a recorded replay is currently being played
+    bool IsReplayPlaying() const;
+    // Returns whether a replay is loaded in memory
+    bool HasReplay() const;
+
 private:
     // Internal renderer reference (internal use only)
     Renderer* rendererRef = nullptr;
@@ -206,9 +226,11 @@ private:
     ServerInputManager* serverInputManagerRef = nullptr;
     // Internal server reference (internal use and server mode only)
     Server* serverRef = nullptr;
-    // Internal event manager refference (internal use only)
+    // Internal event manager reference (internal use only)
     EventManager* eventManagerRef = nullptr;
-    
+    // Internal replay manager reference (internal use only)
+    ReplayManager* replayManagerRef = nullptr;
+
     // Current network mode
     NetworkMode currentMode = NetworkMode::STANDALONE;
     // Headless server flag (server mode only)
