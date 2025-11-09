@@ -10,6 +10,7 @@
 #include "Renderer/EntityManager.h"
 #include "Timeline.h"
 #include "Networking/NetworkManager.h"
+#include "EventHandler/EventManager.h"
 #include <thread>
 #include <mutex>
 #include <atomic>
@@ -53,6 +54,8 @@ private:
     Timeline timeline;
     // Network manager for client networking
     NetworkManager networkManager;
+    // Event manager for event-driven gameplay
+    EventManager eventManager;
 
     // Current network mode
     NetworkMode currentMode = NetworkMode::STANDALONE;

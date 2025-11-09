@@ -6,6 +6,7 @@
 #include "Renderer/EntityManager.h"
 #include "Physics/Physics.h"
 #include "Core/Timeline.h"
+#include "EventHandler/EventManager.h"
 #include <unordered_map>
 #include <string>
 #include <chrono>
@@ -49,6 +50,8 @@ public:
     Timeline& GetTimeline() { return serverTimeline; }
     // Get server's input manager (for game logic access)
     ServerInputManager& GetInputManager() { return inputManager; }
+    // Get server's event manager (for game logic access)
+    EventManager& GetEventManager() { return serverEventManager; }
 
     // Mark an entity as controlled by a client
     void RegisterPlayerEntity(uint32_t clientID, uint32_t entityID);
@@ -70,6 +73,7 @@ private:
     Physics serverPhysics;
     Timeline serverTimeline;
     ServerInputManager inputManager;
+    EventManager serverEventManager;
     GameInterface* gameLogic = nullptr;
 
     // Client management

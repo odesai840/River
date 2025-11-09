@@ -377,31 +377,31 @@ uint32_t GameInterface::GetLocalPlayerEntity() {
     return 0;
 }
 
-void GameInterface::Register(std::string name, Event e)
+void GameInterface::Register(int type, Event e)
 {
     if (eventManagerRef) {
-        eventManagerRef->Register(name, e);
+        eventManagerRef->Register(type, e);
     }
 }
 
-void GameInterface::Deregister(std::string name)
+void GameInterface::Deregister(int type)
 {
     if (eventManagerRef) {
-        eventManagerRef->Deregister(name);
+        eventManagerRef->Deregister(type);
     }
 }
 
-void GameInterface::Queue(std::string name)
+void GameInterface::Queue(int type, EventData data)
 {
     if (eventManagerRef) {
-        eventManagerRef->Queue(name);  
+        eventManagerRef->Queue(type, data);
     }
 }
 
 void GameInterface::Raise()
 {
     if (eventManagerRef) {
-        eventManagerRef->Raise();   
+        eventManagerRef->Raise();
     }
 }
 

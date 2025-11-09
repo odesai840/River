@@ -45,6 +45,8 @@ public:
     void SetInputManager(ServerInputManager* inputManager) { this->serverInputManagerRef = inputManager; }
     // Set server reference (for server mode only)
     void SetServerRef(Server* server) { this->serverRef = server; }
+    // Set event manager reference (for use in engine core only)
+    void SetEventManager(EventManager* eventManager) { this->eventManagerRef = eventManager; }
     // Set network mode (for use in engine core only)
     void SetMode(NetworkMode mode) { this->currentMode = mode; }
     // Set headless server flag (for server mode only)
@@ -179,13 +181,13 @@ protected:
     uint32_t GetLocalPlayerEntity();
 
     // Registers an Event
-    void Register(std::string name, Event e);
+    void Register(int type, Event e);
     // Deregisters event
-    void Deregister(std::string name);
+    void Deregister(int type);
     // Queues event
-    void Queue (std::string name);
+    void Queue(int type, EventData data = EventData());
     // Raises events in order of queue
-    void Raise ();
+    void Raise();
 
 private:
     // Internal renderer reference (internal use only)

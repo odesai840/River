@@ -173,6 +173,7 @@ void Application::Run(GameInterface* game) {
     game->SetInput(&input);
     game->SetEntityManager(&entityManager);
     game->SetTimeline(&timeline);
+    game->SetEventManager(&eventManager);
     game->SetMode(NetworkMode::STANDALONE);
 
     // Run game start method
@@ -245,6 +246,7 @@ void Application::RunServer(GameInterface* game, bool headless) {
     game->SetPhysicsRef(&server.GetPhysics());
     game->SetTimeline(&server.GetTimeline());
     game->SetInputManager(&server.GetInputManager());
+    game->SetEventManager(&server.GetEventManager());
     game->SetMode(NetworkMode::SERVER);
     game->SetServerRef(&server);
     game->SetHeadlessServer(headless);
@@ -341,6 +343,7 @@ void Application::RunClient(const std::string& serverAddress, GameInterface* gam
     game->SetInput(&input);
     game->SetEntityManager(&entityManager);
     game->SetTimeline(&timeline);
+    game->SetEventManager(&eventManager);
     game->SetMode(NetworkMode::CLIENT);
 
     // Initialize NetworkManager and connect to server
