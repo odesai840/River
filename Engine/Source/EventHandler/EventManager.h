@@ -2,12 +2,12 @@
 #define EVENTMANAGER_H
 
 #include "Math/Math.h"
+#include "Core/Timeline.h"
 #include <functional>
 #include <unordered_map>
 #include <vector>
 #include <string>
 #include <queue>
-#include <utility>
 
 namespace RiverCore {
 
@@ -44,29 +44,41 @@ struct EventData {
 // type is also used for queueing
 struct Event {
     int type;
-    std::function<void(EventData)> handler;
+    std::function<void(EventData)> handler;  // Used for registration only
+    EventData data;                          // Used for queueing only
+    float timestamp;                         // Used for queueing only
 
-    // Create an empty event
-    Event() = default;
-    //Create an event with specific type and function to handle
-    Event(int type, std::function<void(EventData)> handler): type(type), handler(handler) {}
+    // Default constructor
+    Event() : type(0), timestamp(-1.0f) {}
 
-    // Changes the function of the event
-    void ChangeHandler(Event e, std::function<void(EventData)> newHandler) {
-        e.handler = newHandler;
+    // Constructor for registration (with handler)
+    Event(int type, std::function<void(EventData)> handler)
+        : type(type), handler(handler), timestamp(-1.0f) {}
+
+    // Constructor for queueing (with data and timestamp)
+    Event(int type, EventData data, float timestamp)
+        : type(type), data(data), timestamp(timestamp) {}
+
+    // Comparison operator for priority queue
+    bool operator>(const Event& other) const {
+        // First priority: timestamp (earlier = higher priority)
+        if (timestamp != other.timestamp) {
+            return timestamp > other.timestamp;
+        }
+        // Second priority: event type (lower enum value = higher priority)
+        return type > other.type;
     }
-
-    // Changes the type of event
-    void ChangeType(Event e, int newType) {
-        e.type = newType;
-    }
-
 };
 
 class EventManager {
 public:
     // Create an event manager
     EventManager() = default;
+
+    // Set timeline reference for timestamp tracking
+    void SetTimeline(Timeline* timeline) {
+        timelineRef = timeline;
+    }
 
     // Set input recording callback (called when input events are queued during recording)
     void SetInputRecordingCallback(std::function<void(const EventData&)> callback) {
@@ -83,34 +95,19 @@ public:
         eventMap.erase(type);
     }
 
-    // Pushes event to the queue with data
-    void Queue(int type, EventData data = EventData());
+    // Pushes event to the queue with data and optional timestamp
+    // If timestamp < 0, uses current time (immediate processing)
+    // If timestamp >= 0, event is scheduled for that time (delayed event)
+    void Queue(int type, EventData data = EventData(), float timestamp = -1.0f);
 
-    void Raise() {
-
-        int eventsToProcess = eventQueue.size();
-
-        for (int i = 0; i < eventsToProcess; i++) {
-
-            auto eventPair = eventQueue.front();
-            eventQueue.pop();
-
-            int eventType = eventPair.first;
-            EventData eventData = eventPair.second;
-
-            auto it = eventMap.find(eventType);
-            if ( it != eventMap.end()) {
-                for (auto& event : it->second) {
-                    event.handler(eventData);
-                }
-            }
-        }
-    }
+    // Raises all events whose timestamp has arrived (timestamp <= current time)
+    void Raise();
 
 private:
     std::unordered_map<int, std::vector<Event>> eventMap;
-    std::queue<std::pair<int, EventData>> eventQueue;
+    std::priority_queue<Event, std::vector<Event>, std::greater<Event>> eventQueue;
     std::function<void(const EventData&)> inputRecordCallback;
+    Timeline* timelineRef = nullptr;
 };
 
 }

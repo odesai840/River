@@ -335,6 +335,9 @@ void Server::SimulationLoop() {
     auto lastTime = std::chrono::high_resolution_clock::now();
     float accumulator = 0.0f;
 
+    // Connect event manager to timeline for timestamp tracking
+    serverEventManager.SetTimeline(&serverTimeline);
+
     while (running.load()) {
         auto currentTime = std::chrono::high_resolution_clock::now();
         float deltaTime = std::chrono::duration<float>(currentTime - lastTime).count();
@@ -346,6 +349,9 @@ void Server::SimulationLoop() {
         while (accumulator >= FIXED_TIMESTEP) {
             // Apply timeline scaling
             float effectiveTimestep = serverTimeline.CalculateEffectiveTime(FIXED_TIMESTEP);
+
+            // Update timeline
+            serverTimeline.Update(FIXED_TIMESTEP);
 
             // Update physics
             serverEntityManager.UpdatePhysics([this, effectiveTimestep](std::vector<Entity>& entities) {

@@ -22,9 +22,16 @@ public:
     // Calculate effective time with pause and scaling applied
     float CalculateEffectiveTime(float rawTime) const;
 
+    // Update total elapsed time
+    void Update(float deltaTime);
+
+    // Get the current game time
+    float GetCurrentTime() const;
+
 private:
     std::atomic<bool> paused{false};
     std::atomic<float> timeScale{1.0f};
+    std::atomic<float> totalElapsedTime{0.0f};
 };
 
 }

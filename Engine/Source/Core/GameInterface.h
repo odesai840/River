@@ -143,7 +143,9 @@ protected:
     Vec2 GetVisibleWorldMax() const;
     // Camera viewport query (what world area is visible on screen)
     bool IsWorldPositionVisible(const Vec2& worldPos, const Vec2& size) const;
-    
+
+    // Get current game time
+    float GetCurrentTime() const;
     // Sets the internal engine time scale to a custom time scale
     void SetTimeScale(float scale);
     // Gets the internal engine time scale
@@ -189,6 +191,8 @@ protected:
     void Deregister(int type);
     // Queues event
     void Queue(int type, EventData data = EventData());
+    // Queue a delayed event
+    void QueueDelayed(int type, float delaySeconds, EventData data = EventData());
     // Raises events in order of queue
     void Raise();
 

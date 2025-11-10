@@ -101,6 +101,9 @@ void Application::RenderThreadFunction() {
         // Update animations
         entityManager.UpdateAnimations(effectiveDeltaTime);
 
+        // Update timeline
+        timeline.Update(deltaTime);
+
         // Update game logic
         gameRef->OnUpdate(effectiveDeltaTime);
 
@@ -177,6 +180,7 @@ void Application::Run(GameInterface* game) {
     game->SetEntityManager(&entityManager);
     game->SetTimeline(&timeline);
     game->SetEventManager(&eventManager);
+    eventManager.SetTimeline(&timeline);
     game->SetMode(NetworkMode::STANDALONE);
 
     // Set up replay manager
@@ -356,6 +360,7 @@ void Application::RunClient(const std::string& serverAddress, GameInterface* gam
     game->SetEntityManager(&entityManager);
     game->SetTimeline(&timeline);
     game->SetEventManager(&eventManager);
+    eventManager.SetTimeline(&timeline);
     game->SetMode(NetworkMode::CLIENT);
 
     // Set up replay manager

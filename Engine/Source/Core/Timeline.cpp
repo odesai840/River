@@ -35,4 +35,15 @@ float Timeline::CalculateEffectiveTime(float rawTime) const {
     return rawTime * timeScale.load();
 }
 
+void Timeline::Update(float deltaTime) {
+    // Only accumulate time if not paused, and apply time scale
+    float effectiveTime = CalculateEffectiveTime(deltaTime);
+    float current = totalElapsedTime.load();
+    totalElapsedTime.store(current + effectiveTime);
+}
+
+float Timeline::GetCurrentTime() const {
+    return totalElapsedTime.load();
+}
+
 }

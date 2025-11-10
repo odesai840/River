@@ -293,6 +293,13 @@ bool GameInterface::IsWorldPositionVisible(const Vec2& worldPos, const Vec2& siz
     return false;
 }
 
+float GameInterface::GetCurrentTime() const {
+    if (timelineRef) {
+        return timelineRef->GetCurrentTime();
+    }
+    return 0.0f;
+}
+
 void GameInterface::SetTimeScale(float scale) {
     if (timelineRef) {
         timelineRef->SetTimeScale(scale);
@@ -396,6 +403,13 @@ void GameInterface::Queue(int type, EventData data)
 {
     if (eventManagerRef) {
         eventManagerRef->Queue(type, data);
+    }
+}
+
+void GameInterface::QueueDelayed(int type, float delaySeconds, EventData data) {
+    if (eventManagerRef && timelineRef) {
+        float scheduledTime = timelineRef->GetCurrentTime() + delaySeconds;
+        eventManagerRef->Queue(type, data, scheduledTime);
     }
 }
 
