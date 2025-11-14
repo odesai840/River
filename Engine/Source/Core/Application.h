@@ -17,11 +17,15 @@
 #include <atomic>
 #include <condition_variable>
 #include <string>
+#include <csignal>
 
 namespace RiverCore {
 
 // Forward declarations
 class Server;
+
+// Global running flag for signal handling (only for headless server)
+inline extern std::atomic<bool>* g_running;
 
 class Application {
 public:
@@ -79,6 +83,8 @@ private:
     std::mutex renderMutex;
     // Condition variable for renderer synchronization
     std::condition_variable renderCondition;
+    // Atomic boolean to signal renderer initialization complete
+    std::atomic<bool> rendererInitialized{false};
     // Atomic boolean to control the render thread loop
     std::atomic<bool> renderReady{false};
 
@@ -96,6 +102,8 @@ private:
     // Maximum frame time for rendering
     static constexpr float MAX_FRAME_TIME = 0.25f;
 };
+
+void ServerSignalHandler(int signal);
 
 }
 

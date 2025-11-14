@@ -41,7 +41,7 @@ if(MSVC)
         WIN32_EXECUTABLE FALSE
     )
 else()
-    target_compile_options(Game PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(Game PRIVATE -Wall -Wextra -Wpedantic -pthread)
 endif()
 
 # Set the executable name

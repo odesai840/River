@@ -5,6 +5,8 @@
 
 namespace RiverCore {
 
+std::atomic<bool>* g_running = nullptr;
+    
 Application::Application() {
     // Initialize the internal window class object
     window = Window();
@@ -51,11 +53,6 @@ void Application::Init() {
     if(window.GetNativeWindow() == nullptr) {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Error creating SDL window: %s\n", SDL_GetError());
     }
-
-    // Initialize renderer
-    renderer.Init(window.GetNativeWindow());
-    // Initialize entity manager
-    entityManager.SetRenderer(renderer.GetRenderer());
 }
 
 void Application::PhysicsThreadFunction() {
@@ -72,6 +69,17 @@ void Application::PhysicsThreadFunction() {
 }
 
 void Application::RenderThreadFunction() {
+    // Initialize renderer
+    renderer.Init(window.GetNativeWindow());
+    // Initialize entity manager
+    entityManager.SetRenderer(renderer.GetRenderer());
+
+    if (gameRef) {
+        gameRef->OnStart();
+    }
+
+    rendererInitialized.store(true);
+    
     // Last frame time
     auto lastTime = std::chrono::high_resolution_clock::now();
 
@@ -117,6 +125,18 @@ void Application::RenderThreadFunction() {
 }
 
 void Application::RenderThreadFunction_ListenServer(Server* server) {
+    // Initialize renderer
+    renderer.Init(window.GetNativeWindow());
+    // Initialize entity manager
+    entityManager.SetRenderer(renderer.GetRenderer());
+    server->GetEntityManager().SetRenderer(renderer.GetRenderer());
+
+    if (gameRef) {
+        gameRef->OnStart();
+    }
+
+    rendererInitialized.store(true);
+    
     // Last frame time
     auto lastTime = std::chrono::high_resolution_clock::now();
 
@@ -192,12 +212,16 @@ void Application::Run(GameInterface* game) {
         replayManager.RecordInput(data);
     });
 
-    // Run game start method
-    game->OnStart();
-
     // Start worker threads
     physicsThread = std::thread(&Application::PhysicsThreadFunction, this);
     renderThread = std::thread(&Application::RenderThreadFunction, this);
+
+    while(!rendererInitialized.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    
+    // Run game start method
+    //game->OnStart();
 
     // Main update loop
     bool done = false;
@@ -248,7 +272,7 @@ void Application::RunServer(GameInterface* game, bool headless) {
     currentMode = NetworkMode::SERVER;
 
     if (!headless) {
-        // Listen-server mode with rendering
+        // Initialize engine systems for listen-server mode
         Init();
     }
 
@@ -267,36 +291,72 @@ void Application::RunServer(GameInterface* game, bool headless) {
     game->SetServerRef(&server);
     game->SetHeadlessServer(headless);
 
-    // Set input for listen-server
-    if (!headless) {
-        game->SetInput(&input);
-    }
-
     // Enable headless mode only for dedicated servers
     server.GetEntityManager().SetHeadlessMode(headless);
 
     // Set renderer for listen-server entity manager
-    if (!headless) {
-        server.GetEntityManager().SetRenderer(renderer.GetRenderer());
+    if (headless) {
+        // Initialize game logic
+        game->OnStart();
+
+        std::cout << "Game initialized, starting server...\n";
+
+        // Set up signal handler
+        g_running = &running;
+        (void)std::signal(SIGINT, ServerSignalHandler);
+
+        // Start server (blocks in simulation loop)
+        std::thread serverThread([&server, game]() {
+            server.Start(game);
+        });
+
+        // Shutdown monitor thread - watches running flag and stops server
+        std::thread shutdownMonitor([this, &server]() {
+            while (running.load()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            // Running flag set to false, stop the server
+            std::cout << "Shutdown requested, stopping server...\n";
+            server.Stop();
+        });
+
+        // Wait for server thread to complete
+        std::cout << "Headless server running. Press Ctrl+C to stop.\n";
+        
+        if (serverThread.joinable()) {
+            serverThread.join();
+        }
+
+        if (shutdownMonitor.joinable()) {
+            shutdownMonitor.join();
+        }
+
+        // Restore default signal handler
+        (void)std::signal(SIGINT, SIG_DFL);
+        g_running = nullptr;
     }
-
-    // Initialize game logic
-    game->OnStart();
-
-    std::cout << "Game initialized, starting server...\n";
-
-    // Start server (blocks in simulation loop)
-    std::thread serverThread([&server, game]() {
-        server.Start(game);
-    });
-
-    if (!headless) {
+    else {
         // Listen-server with local rendering
         gameRef = game;
         game->SetRenderer(&renderer);
 
+        // Set input for listen-server
+        game->SetInput(&input);
+
         // Start render thread with server's EntityManager
         renderThread = std::thread(&Application::RenderThreadFunction_ListenServer, this, &server);
+
+        while (!rendererInitialized.load()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        // Initialize game logic
+        //game->OnStart();
+
+        // Start server (blocks in simulation loop)
+        std::thread serverThread([&server, game]() {
+            server.Start(game);
+        });
 
         // Main event loop
         bool done = false;
@@ -336,10 +396,6 @@ void Application::RunServer(GameInterface* game, bool headless) {
         SDL_DestroyRenderer(renderer.GetRenderer());
         SDL_DestroyWindow(window.GetNativeWindow());
         SDL_Quit();
-    } else {
-        // Headless server - just wait
-        std::cout << "Headless server running. Press Ctrl+C to stop.\n";
-        serverThread.join();
     }
 }
 
@@ -372,6 +428,15 @@ void Application::RunClient(const std::string& serverAddress, GameInterface* gam
         replayManager.RecordInput(data);
     });
 
+    // Start worker threads
+    physicsThread = std::thread(&Application::PhysicsThreadFunction, this);
+    renderThread = std::thread(&Application::RenderThreadFunction, this);
+    networkThread = std::thread(&Application::NetworkThreadFunction, this);
+
+    while(!rendererInitialized.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
     // Initialize NetworkManager and connect to server
     networkManager.SetEntityManager(&entityManager);
     if (!networkManager.Connect(serverAddress)) {
@@ -383,12 +448,7 @@ void Application::RunClient(const std::string& serverAddress, GameInterface* gam
     game->SetNetworkManager(&networkManager);
 
     // Run game start method
-    game->OnStart();
-
-    // Start worker threads
-    physicsThread = std::thread(&Application::PhysicsThreadFunction, this);
-    renderThread = std::thread(&Application::RenderThreadFunction, this);
-    networkThread = std::thread(&Application::NetworkThreadFunction, this);
+    //game->OnStart();
 
     // Main update loop
     bool done = false;
@@ -436,5 +496,10 @@ void Application::RunClient(const std::string& serverAddress, GameInterface* gam
     SDL_Quit();
 }
 
+void ServerSignalHandler(int signal) {
+    if (signal == SIGINT && g_running) {
+        g_running->store(false);
+    }
+}
 
 }

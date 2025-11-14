@@ -45,7 +45,7 @@ target_link_libraries(Engine
 if(MSVC)
     target_compile_options(Engine PRIVATE /W4)
 else()
-    target_compile_options(Engine PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(Engine PRIVATE -Wall -Wextra -Wpedantic -pthread)
 endif()
 
 # Create an alias for easier linking
