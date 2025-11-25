@@ -497,4 +497,50 @@ bool GameInterface::HasReplay() const {
     return false;
 }
 
+int GameInterface::alloc()
+{
+    if (allocatorRef) {
+        return allocatorRef->alloc();
+    }
+    return -1;
+}
+void GameInterface::freeSlot(int id)
+{
+    if (allocatorRef) {
+        allocatorRef->freeSlot(id);
+    }
+}
+void GameInterface::free()
+{
+    if (allocatorRef) {
+        allocatorRef->free();
+    }
+}
+void *GameInterface::getPointer(int id)
+{
+    if (allocatorRef) {
+        allocatorRef->getPointer(id);
+    }
+}
+int GameInterface::getUsed()
+{
+    if (allocatorRef) {
+        return allocatorRef->getUsed();
+    }
+    return -1;
+}
+int GameInterface::getTotal()
+{
+    if (allocatorRef) {
+        return allocatorRef->getTotal();
+    }
+    return -1;
+}
+float GameInterface::getUsedPercent()
+{
+    if (allocatorRef) {
+        return allocatorRef->getUsedPercent();
+    }
+    return 0.0f;
+}
 }

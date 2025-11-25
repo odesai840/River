@@ -10,6 +10,7 @@
 #include "NetworkMode.h"
 #include "EventHandler/EventManager.h"
 #include "Replay/ReplayManager.h"
+#include "Memory/Allocator.h"
 
 namespace RiverCore {
 
@@ -54,6 +55,8 @@ public:
     void SetMode(NetworkMode mode) { this->currentMode = mode; }
     // Set headless server flag (for server mode only)
     void SetHeadlessServer(bool headless) { headlessServer = headless; }
+    // Set Memory reference (for use in engine core only)
+    void SetMemory(Allocator* allocator) {this->allocatorRef = allocator;}
     
 protected:
     // Add an entity to the scene
@@ -213,6 +216,21 @@ protected:
     // Returns whether a replay is loaded in memory
     bool HasReplay() const;
 
+    // Allocates memory
+    int alloc();
+    // Frees a memory slot
+    void freeSlot(int id);
+    // Frees all memory
+    void free();
+    // Gets pointer to memory
+    void* getPointer(int id);
+    // Gets number of memory used
+    int getUsed();
+    // Gets total number of memory
+    int getTotal();
+    // Gets percentage of used memory
+    float getUsedPercent();
+
 private:
     // Internal renderer reference (internal use only)
     Renderer* rendererRef = nullptr;
@@ -234,6 +252,8 @@ private:
     EventManager* eventManagerRef = nullptr;
     // Internal replay manager reference (internal use only)
     ReplayManager* replayManagerRef = nullptr;
+    // Memory reference (internal use only)
+    Allocator* allocatorRef = nullptr;
 
     // Current network mode
     NetworkMode currentMode = NetworkMode::STANDALONE;
