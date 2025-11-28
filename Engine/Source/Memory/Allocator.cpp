@@ -1,16 +1,20 @@
 #include "Allocator.h"
 #include <cstring>
 
-RiverCore::Allocator::Allocator(int size, int count) : size(size), count(count), usedNum(0)
-{
-    memory = new char[size*count];
+namespace RiverCore {
 
+Allocator::Allocator(int size, int count) : size(size), count(count), usedNum(0) {
+    memory = new char[size * count];
     used = new bool[count];
     std::memset(used, 0, count * sizeof(bool));
 }
 
-int RiverCore::Allocator::alloc()
-{
+Allocator::~Allocator() {
+    delete[] memory;
+    delete[] used;
+}
+
+int Allocator::Alloc() {
     for (int i = 0; i < count; i++) {
         if (!used[i]) {
             used[i] = true;
@@ -21,40 +25,38 @@ int RiverCore::Allocator::alloc()
     return -1;
 }
 
-void RiverCore::Allocator::freeSlot(int id)
-{
-    if (id > -1 && id < count && used[id]) {
+void Allocator::FreeSlot(int id) {
+    if (id >= 0 && id < count && used[id]) {
         used[id] = false;
         usedNum--;
     }
 }
 
-void RiverCore::Allocator::free()
-{
+void Allocator::Free() {
     delete[] memory;
     delete[] used;
 }
 
-void *RiverCore::Allocator::getPointer(int id)
-{
+void* Allocator::GetPointer(int id) {
+    if (id < 0 || id >= count) {
+        return nullptr;
+    }
     return memory + (id * size);
 }
 
-int RiverCore::Allocator::getUsed() const
-{
+int Allocator::GetUsed() const {
     return usedNum;
 }
 
-int RiverCore::Allocator::getTotal() const
-{
+int Allocator::GetTotal() const {
     return count;
 }
 
-float RiverCore::Allocator::getUsedPercent() const
-{
+float Allocator::GetUsedPercent() const {
     if (count == 0) {
         return 0.0f;
     }
+    return (float)usedNum / (float)count * 100.0f;
+}
 
-    return (float)usedNum/(float)count * 100.0f;
 }

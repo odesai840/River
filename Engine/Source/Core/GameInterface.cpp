@@ -56,6 +56,41 @@ bool GameInterface::IsKeyPressed(SDL_Scancode key) {
     return false;
 }
 
+void GameInterface::RegisterInputChord(const std::string& name, ChordType type, const std::vector<SDL_Scancode>& keys,
+    float maxTimeBetweenPresses, float simultaneousWindow)
+{
+    if (inputRef) {
+        ChordDefinition chord;
+        chord.name = name;
+        chord.type = type;
+        chord.keys = keys;
+        chord.maxTimeBetweenPresses = maxTimeBetweenPresses;
+        chord.simultaneousWindow = simultaneousWindow;
+        inputRef->RegisterChord(chord);
+    }
+}
+
+void GameInterface::UpdateInputChords(const std::set<SDL_Scancode>& pressedKeys, float currentTime) {
+    if (inputRef) {
+        inputRef->UpdateChords(pressedKeys, currentTime);
+    }
+}
+
+bool GameInterface::IsChordDetected(const std::string& chordName) {
+    if (inputRef) {
+        const auto& chords = inputRef->GetDetectedChords();
+        return std::find(chords.begin(), chords.end(), chordName) != chords.end();
+    }
+    return false;
+}
+
+bool GameInterface::IsChordActive(const std::string& chordName) {
+    if (inputRef) {
+        return inputRef->IsChordActive(chordName);
+    }
+    return false;
+}
+
 void GameInterface::FlipSprite(uint32_t entityID, bool flipX, bool flipY) {
     if(entityManagerRef) {
         entityManagerRef->FlipSprite(entityID, flipX, flipY);
@@ -497,50 +532,51 @@ bool GameInterface::HasReplay() const {
     return false;
 }
 
-int GameInterface::alloc()
-{
+int GameInterface::Alloc() {
     if (allocatorRef) {
-        return allocatorRef->alloc();
+        return allocatorRef->Alloc();
     }
     return -1;
 }
-void GameInterface::freeSlot(int id)
-{
+
+void GameInterface::FreeSlot(int id) {
     if (allocatorRef) {
-        allocatorRef->freeSlot(id);
+        allocatorRef->FreeSlot(id);
     }
 }
-void GameInterface::free()
-{
+
+void GameInterface::Free() {
     if (allocatorRef) {
-        allocatorRef->free();
+        allocatorRef->Free();
     }
 }
-void *GameInterface::getPointer(int id)
-{
+
+void* GameInterface::GetPointer(int id) {
     if (allocatorRef) {
-        allocatorRef->getPointer(id);
+        return allocatorRef->GetPointer(id);
     }
+    return nullptr;
 }
-int GameInterface::getUsed()
-{
+
+int GameInterface::GetUsed() {
     if (allocatorRef) {
-        return allocatorRef->getUsed();
-    }
-    return -1;
-}
-int GameInterface::getTotal()
-{
-    if (allocatorRef) {
-        return allocatorRef->getTotal();
+        return allocatorRef->GetUsed();
     }
     return -1;
 }
-float GameInterface::getUsedPercent()
-{
+
+int GameInterface::GetTotal() {
     if (allocatorRef) {
-        return allocatorRef->getUsedPercent();
+        return allocatorRef->GetTotal();
+    }
+    return -1;
+}
+
+float GameInterface::GetUsedPercent() {
+    if (allocatorRef) {
+        return allocatorRef->GetUsedPercent();
     }
     return 0.0f;
 }
+
 }

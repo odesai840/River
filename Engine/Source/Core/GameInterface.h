@@ -11,6 +11,8 @@
 #include "EventHandler/EventManager.h"
 #include "Replay/ReplayManager.h"
 #include "Memory/Allocator.h"
+#include <vector>
+#include <string>
 
 namespace RiverCore {
 
@@ -85,8 +87,19 @@ protected:
     void ToggleFlipY(uint32_t entityID);
     // Sets an entity's collider type
     void SetColliderType(uint32_t entityID, ColliderType type);
+
     // Checks if a key is pressed
     bool IsKeyPressed(SDL_Scancode key);
+    // Registers an input chord for detection
+    void RegisterInputChord(const std::string& name, ChordType type, const std::vector<SDL_Scancode>& keys,
+        float maxTimeBetweenPresses = 0.3f, float simultaneousWindow = 0.05f);
+    // Updates the chord detector with current key states
+    void UpdateInputChords(const std::set<SDL_Scancode>& pressedKeys, float currentTime);
+    // Checks if a chord was detected this frame
+    bool IsChordDetected(const std::string& chordName);
+    // Checks if a chord is currently active (keys still held)
+    bool IsChordActive(const std::string& chordName);
+
     // Set gravity
     void SetGravity(float gravity);
     // Get Gravity
@@ -103,6 +116,7 @@ protected:
     void SetPosition(uint32_t entityID, float newX, float newY);
     // Gets an entity's position
     Vec2 GetPosition(uint32_t entityID);
+
     // Toggles scaling mode
     void ToggleScalingMode();
     // Toggles collision debug boxes
@@ -216,20 +230,20 @@ protected:
     // Returns whether a replay is loaded in memory
     bool HasReplay() const;
 
-    // Allocates memory
-    int alloc();
-    // Frees a memory slot
-    void freeSlot(int id);
-    // Frees all memory
-    void free();
-    // Gets pointer to memory
-    void* getPointer(int id);
-    // Gets number of memory used
-    int getUsed();
-    // Gets total number of memory
-    int getTotal();
-    // Gets percentage of used memory
-    float getUsedPercent();
+    // Allocates a slot from the memory pool and returns its ID (-1 if pool is full)
+    int Alloc();
+    // Frees a specific memory slot by ID, making it available for reuse
+    void FreeSlot(int id);
+    // Manually frees all memory (also called automatically by allocator destructor)
+    void Free();
+    // Gets a pointer to the memory at the specified slot ID (nullptr if invalid)
+    void* GetPointer(int id);
+    // Returns the number of currently allocated memory slots
+    int GetUsed();
+    // Returns the total number of memory slots in the pool
+    int GetTotal();
+    // Returns the percentage of used memory slots (0.0-100.0)
+    float GetUsedPercent();
 
 private:
     // Internal renderer reference (internal use only)
