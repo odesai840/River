@@ -46,6 +46,7 @@ private:
 
     // Map server entity IDs to local entity IDs
     std::unordered_map<uint32_t, uint32_t> serverToLocalEntityMap;
+    std::unordered_map<uint32_t, uint32_t> localToServerEntityMap;
 
     // Track which entity is the local player
     uint32_t localPlayerEntityId = 0;

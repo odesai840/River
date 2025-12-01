@@ -22,6 +22,7 @@ bool NetworkManager::Connect(const std::string& serverAddress) {
 void NetworkManager::Disconnect() {
     client.Disconnect();
     serverToLocalEntityMap.clear();
+    localToServerEntityMap.clear();
     entitySpriteInfo.clear();
 }
 
@@ -70,16 +71,16 @@ void NetworkManager::ProcessPendingSpawns() {
     std::vector<EntitySpawnInfo> spawns = client.GetPendingSpawns();
 
     for (const EntitySpawnInfo& spawnInfo : spawns) {
-        // Check if entity already exists
-        if (entityManagerRef->EntityExists(spawnInfo.entityID)) {
+        // Check if we've already spawned this server entity ID
+        if (serverToLocalEntityMap.count(spawnInfo.entityID) > 0) {
             continue;  // Already spawned
         }
 
         // Create entity based on whether it's animated or not
-        uint32_t entityID = 0;
+        uint32_t localEntityID = 0;
         if (spawnInfo.totalFrames > 1) {
             // Animated entity
-            entityID = entityManagerRef->AddAnimatedEntity(
+            localEntityID = entityManagerRef->AddAnimatedEntity(
                 spawnInfo.spritePath.c_str(),
                 spawnInfo.totalFrames,
                 spawnInfo.fps,
@@ -92,7 +93,7 @@ void NetworkManager::ProcessPendingSpawns() {
             );
         } else {
             // Static entity
-            entityID = entityManagerRef->AddEntity(
+            localEntityID = entityManagerRef->AddEntity(
                 spawnInfo.spritePath.c_str(),
                 spawnInfo.position.x,
                 spawnInfo.position.y,
@@ -103,18 +104,23 @@ void NetworkManager::ProcessPendingSpawns() {
             );
         }
 
-        // Set collider type
-        if (entityID != 0) {
-            entityManagerRef->SetColliderType(entityID, static_cast<ColliderType>(spawnInfo.colliderType));
-            spawnedEntities.insert(entityID);
+        // Map server ID to local ID
+        if (localEntityID != 0) {
+            serverToLocalEntityMap[spawnInfo.entityID] = localEntityID;
+            localToServerEntityMap[localEntityID] = spawnInfo.entityID;
+
+            entityManagerRef->SetColliderType(localEntityID, static_cast<ColliderType>(spawnInfo.colliderType));
+            spawnedEntities.insert(localEntityID);
 
             // Check if this entity is owned by us
             if (spawnInfo.ownerClientID == GetClientId() && spawnInfo.ownerClientID != 0) {
-                localPlayerEntityId = entityID;
-                std::cout << "NetworkManager: This is our player entity! ID: " << entityID << "\n";
+                localPlayerEntityId = localEntityID;
+                std::cout << "NetworkManager: This is our player entity! Local ID: " << localEntityID
+                          << " (Server ID: " << spawnInfo.entityID << ")\n";
             }
 
-            std::cout << "NetworkManager: Spawned entity ID " << entityID
+            std::cout << "NetworkManager: Spawned entity - Server ID: " << spawnInfo.entityID
+                      << " -> Local ID: " << localEntityID
                       << " (" << spawnInfo.spritePath << ")\n";
         }
     }
@@ -128,13 +134,24 @@ void NetworkManager::ProcessPendingDespawns() {
     // Get despawn messages from client
     std::vector<uint32_t> despawns = client.GetPendingDespawns();
 
-    for (uint32_t entityID : despawns) {
-        // Check if we spawned this entity
-        if (spawnedEntities.find(entityID) != spawnedEntities.end()) {
-            entityManagerRef->RemoveEntity(entityID);
-            spawnedEntities.erase(entityID);
+    for (uint32_t serverEntityID : despawns) {
+        // Translate server entity ID to local entity ID
+        if (serverToLocalEntityMap.count(serverEntityID) == 0) {
+            continue;  // Not found in mapping
+        }
 
-            std::cout << "NetworkManager: Despawned entity ID " << entityID << "\n";
+        uint32_t localEntityID = serverToLocalEntityMap[serverEntityID];
+
+        if (spawnedEntities.count(localEntityID) > 0) {
+            entityManagerRef->RemoveEntity(localEntityID);
+            spawnedEntities.erase(localEntityID);
+
+            // Clean up mappings
+            serverToLocalEntityMap.erase(serverEntityID);
+            localToServerEntityMap.erase(localEntityID);
+
+            std::cout << "NetworkManager: Despawned entity - Server ID: " << serverEntityID
+                      << " (was Local ID: " << localEntityID << ")\n";
         }
     }
 }
@@ -146,8 +163,15 @@ void NetworkManager::SyncEntitiesFromServer(const GameStateSnapshot& snapshot) {
 
     // Update all entities from server snapshot
     for (const EntitySnapshot& entitySnap : snapshot.entities) {
-        // Check if entity exists locally (by server ID)
-        Entity* entity = entityManagerRef->GetEntityByID(entitySnap.entityID);
+        // Translate server entity ID to local entity ID
+        if (serverToLocalEntityMap.count(entitySnap.entityID) == 0) {
+            continue;  // Entity not spawned yet
+        }
+
+        uint32_t localEntityID = serverToLocalEntityMap[entitySnap.entityID];
+
+        // Check if entity exists locally (by local ID)
+        Entity* entity = entityManagerRef->GetEntityByID(localEntityID);
 
         if (entity) {
             // Update entity transform from server
