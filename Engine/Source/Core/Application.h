@@ -12,12 +12,12 @@
 #include "Networking/NetworkManager.h"
 #include "EventHandler/EventManager.h"
 #include "Replay/ReplayManager.h"
+#include "Memory/Allocator.h"
 #include <thread>
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
 #include <string>
-#include <csignal>
 
 namespace RiverCore {
 
@@ -63,6 +63,8 @@ private:
     EventManager eventManager;
     // Replay manager for recording and playback
     ReplayManager replayManager;
+    // Memory allocator for game object pooling
+    Allocator allocator;
 
     // Current network mode
     NetworkMode currentMode = NetworkMode::STANDALONE;

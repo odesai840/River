@@ -67,6 +67,9 @@ protected:
     // Add an animated entity to the scene
     uint32_t AddAnimatedEntity(const char* spritePath, int totalFrames, float fps, float Xpos = 0.0f, float Ypos = 0.0f,
         float rotation = 0.0f, float Xscale = 1.0f, float Yscale = 1.0f, bool physEnabled = false);
+    // Add a spriteless entity to the scene
+    uint32_t AddSpritelessEntity(float width, float height, uint8_t r, uint8_t g, uint8_t b, uint8_t a,
+        float Xpos = 0.0f, float Ypos = 0.0f, float rotation = 0.0f, float Xscale = 1.0f, float Yscale = 1.0f, bool physEnabled = false);
     // Removes an entity from the screen
     void RemoveEntity(uint32_t entityID);
     // Update an entity's position given its ID

@@ -53,6 +53,15 @@ struct Entity {
     int totalFrames = 1;               // Total frames in the animation
     float fps = 0.0f;                  // Frames per second
     float elapsedTime = 0.0f;          // Time tracking for animations
+    
+    // Spriteless rendering support
+    bool isSpriteless = false;         // Flag to indicate this is a spriteless entity
+    uint8_t spritelessR = 255;          // Red component (0-255)
+    uint8_t spritelessG = 255;          // Green component (0-255)
+    uint8_t spritelessB = 255;          // Blue component (0-255)
+    uint8_t spritelessA = 255;          // Alpha component (0-255)
+    float spritelessWidth = 10.0f;      // Width of spriteless entity
+    float spritelessHeight = 10.0f;     // Height of spriteless entity
 
     // Transform
     Vec2 position = Vec2::zero();      // Position (default: Vec2::zero())

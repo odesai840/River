@@ -24,6 +24,15 @@ uint32_t GameInterface::AddAnimatedEntity(const char* spritePath, int totalFrame
     return 0;
 }
 
+uint32_t GameInterface::AddSpritelessEntity(float width, float height, uint8_t r, uint8_t g, uint8_t b, uint8_t a,
+    float Xpos, float Ypos, float rotation, float Xscale, float Yscale, bool physEnabled)
+{
+    if(entityManagerRef) {
+        return entityManagerRef->AddSpritelessEntity(width, height, r, g, b, a, Xpos, Ypos, rotation, Xscale, Yscale, physEnabled);
+    }
+    return 0;
+}
+
 void GameInterface::RemoveEntity(uint32_t entityID) {
     if(entityManagerRef) {
         entityManagerRef->RemoveEntity(entityID);

@@ -2,12 +2,15 @@
 #include "Networking/Server.h"
 #include <chrono>
 #include <iostream>
+#include <csignal>
 
 namespace RiverCore {
 
 std::atomic<bool>* g_running = nullptr;
     
-Application::Application() {
+Application::Application()
+    : allocator(32, 200)
+{
     // Initialize the internal window class object
     window = Window();
 
@@ -202,6 +205,7 @@ void Application::Run(GameInterface* game) {
     game->SetEventManager(&eventManager);
     eventManager.SetTimeline(&timeline);
     game->SetMode(NetworkMode::STANDALONE);
+    game->SetMemory(&allocator);
 
     // Set up replay manager
     replayManager.SetEntityManager(&entityManager);
@@ -290,6 +294,7 @@ void Application::RunServer(GameInterface* game, bool headless) {
     game->SetMode(NetworkMode::SERVER);
     game->SetServerRef(&server);
     game->SetHeadlessServer(headless);
+    game->SetMemory(&allocator);
 
     // Enable headless mode only for dedicated servers
     server.GetEntityManager().SetHeadlessMode(headless);
@@ -418,6 +423,7 @@ void Application::RunClient(const std::string& serverAddress, GameInterface* gam
     game->SetEventManager(&eventManager);
     eventManager.SetTimeline(&timeline);
     game->SetMode(NetworkMode::CLIENT);
+    game->SetMemory(&allocator);
 
     // Set up replay manager
     replayManager.SetEntityManager(&entityManager);
@@ -440,7 +446,7 @@ void Application::RunClient(const std::string& serverAddress, GameInterface* gam
     // Initialize NetworkManager and connect to server
     networkManager.SetEntityManager(&entityManager);
     if (!networkManager.Connect(serverAddress)) {
-        std::cout << "Failed to connect to server at " << serverAddress << std::endl;
+        std::cout << "Failed to connect to server at " << serverAddress << "\n";
         return;
     }
 

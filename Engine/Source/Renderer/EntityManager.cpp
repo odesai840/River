@@ -107,6 +107,42 @@ uint32_t EntityManager::AddAnimatedEntity(const char* spritePath, int totalFrame
     return newEntity.ID;
 }
 
+uint32_t EntityManager::AddSpritelessEntity(float width, float height, uint8_t r, uint8_t g, uint8_t b, uint8_t a,
+    float Xpos, float Ypos, float rotation, float Xscale, float Yscale, bool physEnabled)
+{
+    std::lock_guard<std::mutex> lock(entityMutex);
+
+    Entity newEntity;
+    newEntity.ID = nextEntityID++;
+    newEntity.isSpriteless = true;
+    newEntity.spritelessWidth = width;
+    newEntity.spritelessHeight = height;
+    newEntity.spritelessR = r;
+    newEntity.spritelessG = g;
+    newEntity.spritelessB = b;
+    newEntity.spritelessA = a;
+    newEntity.position = Vec2(Xpos, Ypos);
+    newEntity.rotation = rotation;
+    newEntity.scale = Vec2(Xscale, Yscale);
+    newEntity.physApplied = physEnabled;
+
+    // Set collider size
+    newEntity.collider.size = Vec2(width * Xscale, height * Yscale);
+    newEntity.collider.type = ColliderType::SOLID;
+
+    // Set texture to empty
+    newEntity.spriteSheet = nullptr;
+    newEntity.spritePath = "";
+    newEntity.spriteWidth = width;
+    newEntity.spriteHeight = height;
+
+    // Add to the entity vector and update the index map
+    entities.push_back(newEntity);
+    idToIndex[newEntity.ID] = entities.size() - 1;
+
+    return newEntity.ID;
+}
+
 void EntityManager::RemoveEntity(uint32_t entityID) {
     std::lock_guard<std::mutex> lock(entityMutex);
 

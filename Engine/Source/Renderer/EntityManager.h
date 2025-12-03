@@ -34,6 +34,9 @@ public:
     // Thread-safe function to add an animated entity
     uint32_t AddAnimatedEntity(const char* spritePath, int totalFrames, float fps, float Xpos = 0.0f, float Ypos = 0.0f,
         float rotation = 0.0f, float Xscale = 1.0f, float Yscale = 1.0f, bool physEnabled = false);
+    // Thread-safe function to add a spriteless entity
+    uint32_t AddSpritelessEntity(float width, float height, uint8_t r, uint8_t g, uint8_t b, uint8_t a,
+        float Xpos = 0.0f, float Ypos = 0.0f, float rotation = 0.0f, float Xscale = 1.0f, float Yscale = 1.0f, bool physEnabled = false);
     // Thread-safe function to remove an entity
     void RemoveEntity(uint32_t entityID);
     // Thread-safe function to clear all entities

@@ -64,6 +64,52 @@ void Renderer::EndFrame() {
 }
 
 void Renderer::RenderEntity(const Entity& entity, float globalScaleX, float globalScaleY) const {
+    // Handle spriteless entities
+    if (entity.isSpriteless) {
+        // Calculate scaled dimensions
+        float scaledWidth = entity.spritelessWidth * entity.scale.x * globalScaleX;
+        float scaledHeight = entity.spritelessHeight * entity.scale.y * globalScaleY;
+
+        // Apply camera transform to get camera-relative position
+        Vec2 cameraRelativePos = camera.ApplyCameraTransform(entity.position);
+
+        // Calculate screen position
+        float finalXPos, finalYPos;
+        if (scalingMode == ScalingMode::PixelBased) {
+            finalXPos = (cameraRelativePos.x + (static_cast<float>(windowWidth) / 2.0f)) - (scaledWidth / 2.0f);
+            finalYPos = (-cameraRelativePos.y + (static_cast<float>(windowHeight) / 2.0f)) - (scaledHeight / 2.0f);
+        } else {
+            float scaledXPos = cameraRelativePos.x * globalScaleX;
+            float scaledYPos = cameraRelativePos.y * globalScaleY;
+            finalXPos = (scaledXPos + (static_cast<float>(windowWidth) / 2.0f)) - (scaledWidth / 2.0f);
+            finalYPos = (-scaledYPos + (static_cast<float>(windowHeight) / 2.0f)) - (scaledHeight / 2.0f);
+        }
+
+        // Create SDL rectangle
+        SDL_FRect rect = {
+            finalXPos,
+            finalYPos,
+            scaledWidth,
+            scaledHeight
+        };
+
+        // Set draw color with alpha
+        SDL_SetRenderDrawColor(rendererRef, entity.spritelessR, entity.spritelessG, entity.spritelessB, entity.spritelessA);
+        SDL_SetRenderDrawBlendMode(rendererRef, SDL_BLENDMODE_BLEND);
+
+        // Draw filled rectangle
+        SDL_RenderFillRect(rendererRef, &rect);
+
+        // Draw debug collision box if enabled
+        if (debugCollisions && entity.collider.type != ColliderType::NONE) {
+            SDL_SetRenderDrawColor(rendererRef, 255, 0, 0, 255);
+            SDL_RenderRect(rendererRef, &rect);
+        }
+
+        return;
+    }
+
+    // Handle sprite entities
     if (entity.spriteSheet == nullptr) return;
 
     float spriteWidth = entity.spriteWidth;
@@ -156,7 +202,7 @@ void Renderer::RenderEntity(const Entity& entity, float globalScaleX, float glob
         }
 
         // Draw debug collision box with correct dimensions
-        SDL_SetRenderDrawColor(rendererRef, 255, 0, 0, 128);
+        SDL_SetRenderDrawColor(rendererRef, 255, 0, 0, 255);
         SDL_FRect debugRect = {
             screenX,
             screenY,
