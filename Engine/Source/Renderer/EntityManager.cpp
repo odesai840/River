@@ -345,8 +345,11 @@ void EntityManager::UpdatePhysics(std::function<void(std::vector<Entity>&)> phys
         std::lock_guard<std::mutex> lock(entityMutex);
         // Copy physics results back (positions, velocities, collisions)
         for (size_t i = 0; i < entities.size() && i < entitiesCopy.size(); ++i) {
-            entities[i].position = entitiesCopy[i].position;
-            entities[i].velocity = entitiesCopy[i].velocity;
+            if (entities[i].physApplied) {
+                entities[i].position = entitiesCopy[i].position;
+                entities[i].velocity = entitiesCopy[i].velocity;
+            }
+            // Update colliders
             entities[i].collider = entitiesCopy[i].collider;
         }
     }
