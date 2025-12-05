@@ -50,8 +50,8 @@ private:
 
     // Scaling mode
     ScalingMode scalingMode = ScalingMode::Proportional;
-    float baseWindowWidth = 1920.0f;
-    float baseWindowHeight = 1080.0f;
+    static constexpr float baseWindowWidth = 1920.0f;
+    static constexpr float baseWindowHeight = 1080.0f;
     // Function to calculate scaling factors for scaling modes
     void CalculateScalingFactors(float& scaleX, float& scaleY) const;
 

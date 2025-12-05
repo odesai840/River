@@ -23,8 +23,6 @@ void Renderer::Init(SDL_Window* window) {
 
     // Get the initial window size for the base resolution
     SDL_GetRenderOutputSize(rendererRef, &windowWidth, &windowHeight);
-    baseWindowWidth = static_cast<float>(windowWidth);
-    baseWindowHeight = static_cast<float>(windowHeight);
 
     // Update camera viewport to match window size
     camera.SetViewportSize(windowWidth, windowHeight);
