@@ -554,12 +554,6 @@ void GameInterface::FreeSlot(int id) {
     }
 }
 
-void GameInterface::Free() {
-    if (allocatorRef) {
-        allocatorRef->Free();
-    }
-}
-
 void* GameInterface::GetPointer(int id) {
     if (allocatorRef) {
         return allocatorRef->GetPointer(id);
