@@ -14,8 +14,6 @@ public:
     int Alloc();
     // Frees a specific slot by ID, making it available for reuse
     void FreeSlot(int id);
-    // Manually frees all memory (also called automatically by destructor)
-    void Free();
     // Gets a pointer to the memory at the specified slot ID (nullptr if invalid)
     void* GetPointer(int id);
     // Returns the number of currently allocated slots

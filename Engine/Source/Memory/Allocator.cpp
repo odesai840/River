@@ -32,11 +32,6 @@ void Allocator::FreeSlot(int id) {
     }
 }
 
-void Allocator::Free() {
-    delete[] memory;
-    delete[] used;
-}
-
 void* Allocator::GetPointer(int id) {
     if (id < 0 || id >= count) {
         return nullptr;
